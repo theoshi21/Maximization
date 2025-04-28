@@ -164,7 +164,7 @@ $(document).ready(function() {
           let val = [...constraints[key]];  // Copy the array (to not modify original)
 
           // Check the last value
-          if (val[val.length - 1] == 0) {
+          if (val[val.length - 1] == 1) {
             val[val.length - 1] = `S${i}`;
           }
 
