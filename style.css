@@ -1,0 +1,28 @@
+.plus-label {
+  width: 20px !important; /* Fixed width for + signs */
+  text-align: center;
+}
+.objective-function {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+.max-z-label {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.container-fluid{
+  max-width: 90%;
+}
+
+.variable-input {
+  width: auto;
+  min-width: 50px;
+  max-width: 80px;
+  display: inline-block;
+}
+.objective-function .d-flex {
+  flex-wrap: nowrap; /* prevent wrapping */
+  overflow-x: auto;   /* allow scrolling if too long */
+}
