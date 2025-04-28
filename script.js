@@ -138,7 +138,7 @@ $(document).ready(function() {
       if (constraints.hasOwnProperty(key)) {
         let lastValue = constraints[key][constraints[key].length - 1];
         if (lastValue.trim() === "<=") {
-          constraints[key][constraints[key].length - 1] = 0;
+          constraints[key][constraints[key].length - 1] = 1;
         }
         if(lastValue.trim() === ">=") {
           constraints[key][constraints[key].length - 1] = -1;
