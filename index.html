@@ -39,27 +39,12 @@
       </div>
 
       <!-- Input fields for the objective function -->
-      <form class="varRows d-flex justify-content-center">
-        <div class="objective-function">
-          <span class="max-z-label">Max Z =</span>
-          <div class="d-flex align-items-center flex-wrap">
-            <div><input id="x1" type="text" class="form-control variable-input m-1 w-autp" placeholder="x1"></div>
-            <div class="plus-label font-weight-bold m-1">+</div>
-            <div><input id="x2" type="text" class="form-control variable-input m-1 w-auto" placeholder="x2"></div>
-            <div class="plus-label font-weight-bold m-1">+</div>
-            <div><input id="x3" type="text" class="form-control variable-input m-1 w-auto" placeholder="x3"></div>
-            <div class="plus-label font-weight-bold m-1">+</div>
-            <div><input id="x4" type="text" class="form-control variable-input m-1 w-auto" placeholder="x4"></div>
-            <div class="plus-label font-weight-bold m-1">+</div>
-            <div><input id="x5" type="text" class="form-control variable-input m-1 w-auto" placeholder="x5"></div>
-            <div class="plus-label font-weight-bold m-1">+</div>
-            <div><input id="x6" type="text" class="form-control variable-input m-1 w-auto" placeholder="x6"></div>
-            <div class="plus-label font-weight-bold m-1">+</div>
-            <div><input id="x7" type="text" class="form-control variable-input m-1 w-auto" placeholder="x7"></div>
-          </div>
-        </div>
-      </form>
-    </div>
+    <form class="varRows d-flex justify-content-center mb-3">
+      <div class="objective-function">
+        <span class="max-z-label">Max Z =</span>
+        <div id="objectiveInputs" class="d-flex align-items-center flex-wrap"></div>
+      </div>
+    </form>
 
     <!-- CONSTRAINTS SECTION -->
     <h5 class="bg-secondary text-white p-2 w-auto text-center">Subject to:</h5>
@@ -77,8 +62,8 @@
 
     <div id="solutionContainer">
         <div id="standardForm"> </div>
-        <div id="initialTable"></div>
-        <div id="otherTables"></div>
+        <div id="initialTable" class="row justify-content-center"> </div>
+        <div id="otherTables" class="row justify-content-center"> </div>
     </div
 
   </div>

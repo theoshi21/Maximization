@@ -22,7 +22,19 @@
   max-width: 80px;
   display: inline-block;
 }
+
 .objective-function .d-flex {
   flex-wrap: nowrap; /* prevent wrapping */
   overflow-x: auto;   /* allow scrolling if too long */
 }
+
+.variable-group {
+  display: flex;
+  align-items: center;  
+  justify-content: center; 
+  margin: 0 5px; 
+}
+
+.variable-input {
+  width: 80px; 
+  text-align: center; 
