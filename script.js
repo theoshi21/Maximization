@@ -78,6 +78,7 @@ $(document).ready(function() {
         for (let i = 1; i <= count; i++) {
             constraintHTML += `
                 <div><input id="r${constraintCount}x${i}" type="text" class="form-control variable-input m-1 w-auto" placeholder="x${i}"></div>
+                <span class="ml-1">x<sub>${i}</sub></span>
             `;
             if (i !== count) {
                 constraintHTML += `<div class="plus-label font-weight-bold m-1">+</div>`;
