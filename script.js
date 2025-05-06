@@ -1,6 +1,6 @@
     var constraintCount = 0;
     var count = 2; // Default number of variables
-
+  
 $(document).ready(function() {
     const inputContainer = $('.objective-function .d-flex');
     const allInputWrappers = inputContainer.find('div:not(.plus-label)');
@@ -10,24 +10,23 @@ $(document).ready(function() {
     hideAllInputs();
     showInputs(count);
 
-    $('.var').click(function(e) {
-        e.preventDefault();
-        const numVariables = parseInt($(this).text());
-        const dropdownButton = $('#dropdownVar');
+    $('#numVariablesInput').on('input', function () {
+    let numVariables = parseInt($(this).val());
 
-        hideAllInputs();
-        showInputs(numVariables);
-        dropdownButton.text(`Variables: ${numVariables}`);
-        
-        count = numVariables; // Update variable count
+    hideAllInputs();
+    showInputs(numVariables);
 
-        //  Reset constraints whenever variable count is changed
-        $('#constraintsContainer').empty();
-        constraintCount = 0;
-        $('#nonNegativityConstraint').empty()
-        $('#standardForm').empty()
-        generateObjectiveInputs(count);
-    });
+    count = numVariables; // Update variable count
+
+    // Reset constraints and regenerate objective inputs
+    $('#constraintsContainer').empty();
+    constraintCount = 0;
+    $('#nonNegativityConstraint').empty();
+    $('#standardForm').empty();
+    $('#initialTable').empty();
+
+    generateObjectiveInputs(count);
+});
 
     function generateObjectiveInputs(numVariables) {
       const inputContainer = $('#objectiveInputs');
@@ -36,7 +35,7 @@ $(document).ready(function() {
       for (let i = 1; i <= numVariables; i++) {
         const inputField = `
           <div class="d-flex align-items-center m-1">
-            <input id="x${i}" type="text" class="form-control variable-input w-auto">
+            <input id="x${i}" type="number" class="form-control variable-input w-auto">
             <span class="ml-1">x<sub>${i}</sub></span>
           </div>
         `;
@@ -77,7 +76,7 @@ $(document).ready(function() {
         let constraintHTML = `<div class="d-flex align-items-center mb-2 flex-wrap justify-content-center">`;
         for (let i = 1; i <= count; i++) {
             constraintHTML += `
-                <div><input id="r${constraintCount}x${i}" type="text" class="form-control variable-input m-1 w-auto" placeholder="x${i}"></div>
+                <div><input id="r${constraintCount}x${i}" type="number" class="form-control variable-input m-1 w-auto" placeholder="x${i}"></div>
                 <span class="ml-1">x<sub>${i}</sub></span>
             `;
             if (i !== count) {
@@ -110,7 +109,7 @@ $(document).ready(function() {
     let variables = [];
 
     for (let i = 1; i <= varCount; i++) {
-      variables.push(`x${i}`);
+      variables.push(`x<sub>${i}</sub>`);
     }
 
     constraintDiv.innerHTML = variables.join(", ") + " ≥ 0";
@@ -122,15 +121,18 @@ $(document).ready(function() {
   var constraints = new Object();
   var values = new Object();
   var addedVars = {};
+  var ZjMinusCj = [];
 
   //SOLVE BUTTON CLICKCKED
   $('#solveButton').click(function() {
   objFunctions = {};
   constraints = {};
   values = {};
+  addedVars = {};
+  ZjMinusCj = [];
 
    for (let i = 1; i <= count; i++){
-      objFunctions[`x${i}`] = document.getElementById(`x${i}`).value;
+      objFunctions[`x${i}`] = document.getElementById(`x${i}`).value || "0";
    }
 
    //Checking the inside of the array
@@ -185,7 +187,9 @@ $(document).ready(function() {
     }
 
 
-    let standardHTML = `<h5 class="bg-secondary text-white text-center mt-3">Standard Form</h5>`;
+    let standardHTML = `
+    <h5 class="bg-secondary text-white text-center mt-3 py-2">Standard Form</h5>`;
+  
     let arbitraryCounter = 1;
 
     var standardForm = JSON.parse(JSON.stringify(constraints)); // deep copy
@@ -206,19 +210,19 @@ $(document).ready(function() {
 
           // Apply transformations and track added vars
         if (val[val.length - 1] === "1" || val[val.length - 1] === 1) {
-          val[val.length - 1] = `S${i}`;
+          val[val.length - 1] = `S<sub>${i}</sub>`;
           addedVars[key].push(val[val.length - 1]);
         } else if (
           (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') &&
           (val[val.length - 2] === -1 || val[val.length - 2] === "-1") &&
           val.length > count + 1
         ) {
-          val[val.length - 1] = `A${arbitraryCounter++}`;
-          val[val.length - 2] = `-S${i}`;
+          val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
+          val[val.length - 2] = `-S<sub>${i}</sub>`;
           addedVars[key].push(val[val.length - 2]);
           addedVars[key].push(val[val.length - 1]);
         } else if (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') {
-          val[val.length - 1] = `A${arbitraryCounter++}`;
+          val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
           addedVars[key].push(val[val.length - 1]);
         }
 
@@ -248,7 +252,6 @@ $(document).ready(function() {
   });
 
 
-  var ZjMinusCj = [];
   //INITIAL TABLE
 function initialTable() {
   let cjCol = count;
@@ -266,7 +269,7 @@ function initialTable() {
 
   // Start HTML structure
   let initialHTML = `
-    <table class="table table-bordered mt-2 table-sm w-50 text-center hover">
+    <table class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
       <thead>
         <tr>
           <th colspan="3">C<sub>j</sub></th>`;
@@ -285,7 +288,6 @@ function initialTable() {
   for (let i = 1; i <= constraintCount; i++) {
     let sign = document.getElementById(`dropdownCompare${i}`).textContent.trim();
 
-
     if (sign === "<=") {
       slackCount.push("0");
     } else if (sign === "=") {
@@ -297,7 +299,7 @@ function initialTable() {
   }
 
     let cjValues = [...cjObjValues, ...slackCount, ...aCount];
-
+    let cjValuesAndVariables = {};
     for (let i = 0; i < cjValues.length; i++) {
       initialHTML += `<td class="c${i+1}">${cjValues[i]}</td>`;
     }
@@ -311,15 +313,22 @@ function initialTable() {
   //Populating header Xi columns
   for(let i = 1; i <= keys.length; i++){
     initialHTML += `<th class="c${i}"> x<sub>${i}</sub> </th>`
+    cjValuesAndVariables[`x${i}`] = cjObjValues[i-1];
   }
 
   //Populating the header custom variables
   for(let i = 1; i <= slackCount.length; i++){
     initialHTML += `<th class="c${keys.length+i}"> S<sub>${i}</sub> </th>`
+    cjValuesAndVariables[`s${i}`] = slackCount[i-1];
   }
 
   for(let i = 1; i <= aCount.length; i++){
     initialHTML += `<th class="c${keys.length+slackCount.length+i}"> A<sub>${i}</sub> </th>`
+    cjValuesAndVariables[`a${i}`] = aCount[i-1];
+  }
+
+  for(x in cjValuesAndVariables){
+    console.log(`x: ${cjValuesAndVariables[x]}`);
   }
 
   //Adding the row depending on the constraints
@@ -341,7 +350,15 @@ function initialTable() {
       varShow = addedVars[key][0];
     }
 
-    initialHTML += `<tr class="row${i}"> <td> 0 </td> <td>${varShow} </td> <td> ${values[key]} </td>`;
+    let varShowValue = ""
+    const match = varShow.match(/([A-Za-z])<sub>(\d+)<\/sub>/);
+    if (match) {
+      const letter = match[1].toLowerCase(); // e.g., 'a'
+      const index = match[2];                // e.g., '2'
+      const key = `${letter}${index}`;       // 'a2'
+      varShowValue = cjValuesAndVariables[key];
+    }
+    initialHTML += `<tr class="row${i}"> <td> ${varShowValue} </td> <td>${varShow} </td> <td> ${values[key]} </td>`;
 
     // Add original decision variable coefficients
     let colIndex = 1; // Start from c1
@@ -384,20 +401,28 @@ function initialTable() {
 
   // Add Zj - Cj row
   initialHTML += ` <tr> <th colspan="3">Z<sub>j</sub> - C<sub>j</sub> </th>`;
-  for(let i = 0; i < cjValues.length; i++){
-    let result = cjValues[i]
+  for (let i = 0; i < cjValues.length; i++) {
+  let result = cjValues[i];
 
-    if(result !== "0" && result !== "-M") {
-      initialHTML += `<td class="c${i+1}"> -${result} </td> ` 
-      ZjMinusCj.push(`-${result}`)
-    }
-    else if (result === "-M") {
-      initialHTML += `<td class="c${i+1}"> M </td>`; 
-      ZjMinusCj.push(`M`)
-    }
-    else {
-      initialHTML += `<td class="c${i+1}"> 0 </td>`; 
-      ZjMinusCj.push(`0`)
+  if (result !== "0" && result !== "-M") {
+      let num = parseFloat(result);
+      
+      if (!isNaN(num)) {
+        let displayValue = num >= 0 ? `-${num}` : `${-num}`;
+        initialHTML += `<td class="c${i+1}"> ${displayValue} </td>`;
+        ZjMinusCj.push(displayValue);
+      } else {
+        // Fallback if value is not a number (e.g., symbolic like "M")
+        initialHTML += `<td class="c${i+1}"> ${result} </td>`;
+        ZjMinusCj.push(result);
+      }
+
+    } else if (result === "-M") {
+      initialHTML += `<td class="c${i+1}"> M </td>`;
+      ZjMinusCj.push("M");
+    } else {
+      initialHTML += `<td class="c${i+1}"> 0 </td>`;
+      ZjMinusCj.push("0");
     }
   }
 
@@ -410,12 +435,25 @@ function initialTable() {
   highlightPivotColumn(pivotColumn)
 
   var qi = [];
-  for(let i = 1; i <= constraintCount; i++){
-    let key = `r${i}`
-    let val = document.querySelector(`tr.row${i} td.c${pivotColumn+1}`).textContent; 
-    let quotient = (values[key] / val).toFixed(2);
-    console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${quotient}`)
-    qi.push(quotient)
+  for (let i = 1; i <= constraintCount; i++) {
+    let key = `r${i}`;
+    let cell = document.querySelector(`tr.row${i} td.c${pivotColumn + 1}`);
+    let val = 0;
+
+    if (cell && cell.textContent.trim() !== "") {
+      let parsed = parseFloat(cell.textContent.trim());
+      val = isNaN(parsed) ? 0 : parsed;
+    }
+
+    let quotient;
+    if (val === 0 || isNaN(val)) {
+      quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
+    } else {
+      quotient = (values[key] / val).toFixed(2);
+    }
+
+    console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${quotient}`);
+    qi.push(quotient);
     document.getElementById(`qi${i}`).textContent = quotient;
   }
 

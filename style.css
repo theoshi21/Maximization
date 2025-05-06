@@ -37,7 +37,6 @@ h1 {
 }
 
 /* Inputs */
-
 .variable-input {
   width: 60px;
   min-width: 50px;
@@ -46,7 +45,6 @@ h1 {
   font-size: 14px;
   text-align: center;
 }
-
 
 .variable-input,
 .constraint-group .form-control {
@@ -142,4 +140,12 @@ button {
   .max-z-label {
     font-size: 16px;
   }
+}
+
+#initialTable,
+#otherTables {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0 auto;
 }

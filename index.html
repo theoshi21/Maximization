@@ -9,54 +9,41 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
 
   <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&family=Roboto&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;1,600&family=Roboto:ital@0;1&display=swap" rel="stylesheet">
 
-  <!-- CSS -->
+  <!-- External CSS (Side CSS) -->
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <div class="container-fluid mt-4 px-4">
     <div class="card shadow p-4 rounded">
-      <h1 class="text-center display-4 display-sm-3 display-md-2 display-lg-1 mb-4">Maximization Program</h1>
+      <!-- Header -->
+      <h1 class="text-center display-4 display-sm-3 display-md-2 display-lg-1 mb-4 bg-primary text-white p-4 rounded">
+        Maximization Program
+      </h1>
 
-
-
-      <!-- Objective Function -->
+      <!-- Objective Function Section -->
       <section class="mb-4">
-        <h5 class="section-heading">Objective Function</h5>
-   
-        <!-- Dropdown for selecting number of variables -->
-      <div class="dropdown mb-3 d-flex justify-content-center">
-       <button id="dropdownVar" class="btn btn-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        Variables: 2
-        </button>
-       <div class="dropdown-menu">
-       <a class="dropdown-item var" href="#">2</a>
-       <a class="dropdown-item var" href="#">3</a>
-       <a class="dropdown-item var" href="#">4</a>
-       <a class="dropdown-item var" href="#">5</a>
-       <a class="dropdown-item var" href="#">6</a>
-       <a class="dropdown-item var" href="#">7</a>
-     </div>
-     </div>
+        <h5 class="bg-secondary text-white p-2 w-auto text-center">Objective Function:</h5>
 
-     <form class="varRows d-flex justify-content-center mb-3">
-      <div class="objective-function d-flex align-items-center">
-        <span class="max-z-label">Max Z =</span>
-        <!-- this container now both wraps and vertically centers its children -->
-        <div id="objectiveInputs" class="d-flex flex-wrap align-items-center justify-content-center">
-          <!-- e.g. your <input>, <span class="plus-label">+</span>, etc. -->
+        <div class="form-group mb-3 d-flex justify-content-center align-items-center">
+          <label for="numVariablesInput" class="mr-3 mb-0"><strong>Variables:</strong></label>
+          <input type="number" id="numVariablesInput" class="form-control bg-dark text-white text-center" style="width: 7vw;" value="2"/>
         </div>
-      </div>
-    </form>
-    
-        
+
+        <!-- Input fields for the objective function -->
+        <form class="varRows d-flex justify-content-center mb-3">
+          <div class="objective-function d-flex align-items-center">
+            <span class="max-z-label">Max Z =</span>
+            <div id="objectiveInputs" class="d-flex flex-wrap align-items-center justify-content-center"></div>
+          </div>
+        </form>
       </section>
 
-      <!-- Constraints -->
+      <!-- Constraints Section -->
       <section>
-        <h5 class="section-heading">Subject to</h5>
+        <h5 class="bg-secondary text-white p-2 w-auto text-center">Subject to:</h5>
 
         <div id="constraintsContainer" class="mb-3"></div>
         <div id="nonNegativityConstraint" class="font-weight-bold text-center mb-3"></div>
@@ -67,12 +54,19 @@
         </div>
       </section>
 
-      <!-- Solution Output -->
+      <!-- Solution Output Section -->
       <section id="solutionContainer" class="mt-5">
-        <div id="standardForm" class="mb-3"></div>
-        <div id="initialTable" class="row"></div>
-        <div id="otherTables" class="row"></div>
+        <div id="standardForm" class="mb-3 text-center"></div>
+
+        <div class="d-flex justify-content-center">
+          <div id="initialTable" class="row justify-content-center"></div>
+        </div>
+
+        <div class="d-flex justify-content-center">
+          <div id="otherTables" class="row justify-content-center"></div>
+        </div>
       </section>
+      
     </div>
   </div>
 
