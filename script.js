@@ -122,6 +122,8 @@ $(document).ready(function() {
   var values = new Object();
   var addedVars = {};
   var ZjMinusCj = [];
+  var Ci = [];
+  var columns = [];
 
   //SOLVE BUTTON CLICKCKED
   $('#solveButton').click(function() {
@@ -246,14 +248,12 @@ $(document).ready(function() {
     document.getElementById("standardForm").innerHTML = standardHTML;
 
     initialTable();
-    for(x in addedVars){
-      console.log(`Added VARS: ${addedVars[x]}`);
-    }
   });
 
 
-  //INITIAL TABLE
+//INITIAL TABLE
 function initialTable() {
+  Ci = [];
   let cjCol = count;
   let SandA = 0;
 
@@ -271,7 +271,7 @@ function initialTable() {
   let initialHTML = `
     <table class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
       <thead>
-        <tr>
+        <tr class="obj">
           <th colspan="3">C<sub>j</sub></th>`;
 
   // Add Cj values for original decision variables
@@ -308,7 +308,7 @@ function initialTable() {
   initialHTML += `<th class="text-center align-middle" rowspan='2'> Q<sub>i</sub> </th> </tr>`;
 
   //For the Cj, Soln, Q and other labels:
-  initialHTML += `<th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`
+  initialHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`
 
   //Populating header Xi columns
   for(let i = 1; i <= keys.length; i++){
@@ -357,17 +357,23 @@ function initialTable() {
       const index = match[2];                // e.g., '2'
       const key = `${letter}${index}`;       // 'a2'
       varShowValue = cjValuesAndVariables[key];
+      Ci.push(varShowValue);
     }
+    console.log(`Ci${i}: ${Ci} `)
     initialHTML += `<tr class="row${i}"> <td> ${varShowValue} </td> <td>${varShow} </td> <td> ${values[key]} </td>`;
+    if (!columns[i - 1]) columns[i - 1] = [];
+    columns[i - 1].push(values[key]);
+    console.log(`Column After Val: ${columns}`);
 
     // Add original decision variable coefficients
     let colIndex = 1; // Start from c1
-    let rowIndex
 
     for (let j = 0; j < count; j++) {
       initialHTML += `<td class="c${colIndex}"> ${constraints[key][j] || 0} </td>`;
       colIndex++;
+      columns[i-1].push(constraints[key][j] || 0);  
     }
+    console.log(`Column After Constraints: ${columns}`);
 
     // Add added variables with class names
     for (let varLabel of uniqueAddedVars) {
@@ -385,7 +391,9 @@ function initialTable() {
 
       initialHTML += `<td class="c${colIndex}"> ${cellValue} </td>`;
       colIndex++;
+      columns[i-1].push(cellValue);
     }
+    console.log(JSON.stringify(columns, null, 2));
 
     initialHTML += `<td id=qi${i}></td>` //I WANT TO ADD THE QI VALUES HERE!
     initialHTML += `</tr>`;
@@ -393,37 +401,24 @@ function initialTable() {
   }
 
   // Add Zj row
+  var computedZj = computeZj(Ci, columns);
+  console.log(`Computed ZJ: ${computedZj}`);
   initialHTML += `<tr> <th colspan="3">Z<sub>j</sub> </th>`
-  for(let i = 0; i < cjCol; i++){
-    initialHTML += `<td class="c${i+1}"> 0 </td>`
+
+  for(let i = 0; i < computedZj.length; i++){
+    initialHTML += `<td class="c${i+1}"> ${computedZj[i]} </td>`
   }
+
   initialHTML += `<td rowspan='2'> </td> </tr>`;
 
   // Add Zj - Cj row
-  initialHTML += ` <tr> <th colspan="3">Z<sub>j</sub> - C<sub>j</sub> </th>`;
-  for (let i = 0; i < cjValues.length; i++) {
-  let result = cjValues[i];
+  const ZjMinusCj = computeZjMinusCj(computedZj, cjValues);
 
-  if (result !== "0" && result !== "-M") {
-      let num = parseFloat(result);
-      
-      if (!isNaN(num)) {
-        let displayValue = num >= 0 ? `-${num}` : `${-num}`;
-        initialHTML += `<td class="c${i+1}"> ${displayValue} </td>`;
-        ZjMinusCj.push(displayValue);
-      } else {
-        // Fallback if value is not a number (e.g., symbolic like "M")
-        initialHTML += `<td class="c${i+1}"> ${result} </td>`;
-        ZjMinusCj.push(result);
-      }
+  // Add Zj - Cj row
+  initialHTML += `<tr><th colspan="3">Z<sub>j</sub> - C<sub>j</sub></th>`;
 
-    } else if (result === "-M") {
-      initialHTML += `<td class="c${i+1}"> M </td>`;
-      ZjMinusCj.push("M");
-    } else {
-      initialHTML += `<td class="c${i+1}"> 0 </td>`;
-      ZjMinusCj.push("0");
-    }
+  for (let i = 0; i < ZjMinusCj.length; i++) {
+    initialHTML += `<td class="c${i + 1}">${ZjMinusCj[i]}</td>`;
   }
 
   initialHTML += ` </tr> </thead> </table>`
@@ -458,9 +453,55 @@ function initialTable() {
   }
 
   let pivotRow = findLowestPositiveWithIndex(qi)
+  console.log(`pivotColumn: ${pivotColumn}`)
   console.log(`Pivot row: ${pivotRow}`)
   highlightPivotRow(pivotRow)
 
+  var exitVariable = document.querySelector(`tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
+  var exitVal = document.querySelector(`tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
+  console.log(`Exit Variable: ${exitVariable}`);
+  console.log(`Exit Value: ${exitVal}`);
+}
+
+function computeZj(ciArray, columns) {
+  const zjValues = [];
+  const numCols = columns[0].length;
+  const numRows = ciArray.length;
+
+  for (let colIndex = 1; colIndex < numCols; colIndex++) {
+    const exprParts = [];
+
+    for (let rowIndex = 0; rowIndex < numRows; rowIndex++) {
+      const ci = ciArray[rowIndex];
+      const colVal = columns[rowIndex][colIndex];
+
+      if (ci !== undefined && colVal !== undefined) {
+        exprParts.push(`(${ci}) * (${colVal})`);
+      }
+    }
+
+    const fullExpr = exprParts.join(" + ") || "0";
+    const simplified = formatExpression(fullExpr);
+    zjValues.push(simplified);
+  }
+
+  return zjValues;
+}
+
+function computeZjMinusCj(computedZj, cjValues) {
+  const resultArray = [];
+
+  for (let i = 0; i < cjValues.length; i++) {
+    const zj = computedZj[i] || "0";
+    const cj = cjValues[i] || "0";
+
+    const expression = `(${zj}) - (${cj})`;
+    const result = formatExpression(expression);
+
+    resultArray.push(result);
+  }
+
+  return resultArray;
 }
 
 function findLowestPositiveWithIndex(qi) {
@@ -468,25 +509,19 @@ function findLowestPositiveWithIndex(qi) {
   let minIndex = -1;
 
   for (let i = 0; i < qi.length; i++) {
-    let val = qi[i];
-    let num;
+    const expr = formatExpression(qi[i]); // Clean formatting for display
+    const numericExpr = expr.replace(/M/g, "1e9");
 
-    if (val === "M") {
-      num = 1e9; // Treat "M" as a large positive number
-    } else if (val === "-M") {
-      num = -1e9; // Treat "-M" as a large negative number
-    } else {
-      num = parseFloat(val); // Parse as a float if it's a number
-    }
-
-    // Check for positive and non-zero values
-    if (!isNaN(num) && num > 0 && num < minVal) {
-      minVal = num;
-      minIndex = i;
-    }
+    try {
+      const evaluated = math.evaluate(numericExpr);
+      if (typeof evaluated === "number" && evaluated > 0 && evaluated < minVal) {
+        minVal = evaluated;
+        minIndex = i;
+      }
+    } catch {}
   }
 
-  return minIndex; // Return the index of the lowest positive, non-zero value
+  return minIndex;
 }
 
 function getIndexOfHighest(zjCjArray) {
@@ -494,21 +529,16 @@ function getIndexOfHighest(zjCjArray) {
   let maxIndex = -1;
 
   for (let i = 0; i < zjCjArray.length; i++) {
-    let val = zjCjArray[i];
-    let num;
+    const expr = formatExpression(zjCjArray[i]);
+    const numericExpr = expr.replace(/M/g, "1e9");
 
-    if (val === "M") {
-      num = 1e9;
-    } else if (val === "-M") {
-      num = -1e9;
-    } else {
-      num = parseFloat(val);
-    }
-
-    if (!isNaN(num) && num > maxVal) {
-      maxVal = num;
-      maxIndex = i;
-    }
+    try {
+      const evaluated = math.evaluate(numericExpr);
+      if (typeof evaluated === "number" && evaluated > maxVal) {
+        maxVal = evaluated;
+        maxIndex = i;
+      }
+    } catch {}
   }
 
   return maxIndex;
@@ -519,23 +549,16 @@ function getIndexOfMostNegativeZjCj(zjCjArray) {
   let minIndex = -1;
 
   for (let i = 0; i < zjCjArray.length; i++) {
-    let val = zjCjArray[i];
-    let num;
+    const expr = formatExpression(zjCjArray[i]);
+    const numericExpr = expr.replace(/M/g, "1e9");
 
-    // Handling special cases for "M" and "-M"
-    if (val === "M") {
-      num = 1e9;  // Large positive value for "M"
-    } else if (val === "-M") {
-      num = -1e9; // Large negative value for "-M"
-    } else {
-      num = parseFloat(val); // Parse the numeric value from the string
-    }
-
-    // Ensure the value is a valid number and compare for the most negative value
-    if (!isNaN(num) && num < minVal) {
-      minVal = num;
-      minIndex = i;
-    }
+    try {
+      const evaluated = math.evaluate(numericExpr);
+      if (typeof evaluated === "number" && evaluated < minVal) {
+        minVal = evaluated;
+        minIndex = i;
+      }
+    } catch {}
   }
 
   return minIndex;
@@ -556,6 +579,22 @@ function highlightPivotRow(index) {
   pivotRow.forEach(cell => {
     cell.classList.add("bg-info", "text-white");
   });
+}
+
+function formatExpression(expr) {
+  try {
+    let simplified = math.simplify(expr).toString();
+
+    return simplified
+      .replace(/(\d+)\s*\*\s*([a-zA-Z]+)/g, "$1$2")    // 3 * M => 3M
+      .replace(/-\((\d+[a-zA-Z]+)\)/g, "-$1")          // -(3M) => -3M
+      .replace(/\+\s*-/g, "- ")
+      .replace(/-\s*-/g, "+ ")
+      .replace(/^\+ /, "")
+      .trim() || "0";
+  } catch {
+    return expr;
+  }
 }
 
 
