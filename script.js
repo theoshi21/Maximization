@@ -376,12 +376,10 @@ function createSimplexTable(iteration){
       if (val === 0 || isNaN(val)) {
         quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
       } else {
-        quotient = (values[key] / val).toFixed(2);
-        var frac = new Fraction(quotient);
+        quotient = (values[key]/val).toFixed(2);
       }
-      console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${frac.toFraction()}`);
       qi.push(quotient);
-      document.getElementById(`qi${i}`).textContent = frac.toFraction();
+      document.getElementById(`qi${i}`).textContent = (`${values[key]} / ${val}`);
     }
   }
   else {
@@ -586,11 +584,9 @@ function initialTable() {
       quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
     } else {
       quotient = (values[key] / val).toFixed(2);
-      var frac = new Fraction(quotient);
     }
-    console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${frac.toFraction()}`);
     qi.push(quotient);
-    document.getElementById(`qi${i}`).textContent = frac.toFraction();
+    document.getElementById(`qi${i}`).textContent = (`${values[key]} / ${val}`);
   }
 
   pivotRow = findLowestPositiveWithIndex(qi)
