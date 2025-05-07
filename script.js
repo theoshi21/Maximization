@@ -1,5 +1,5 @@
-    var constraintCount = 0;
-    var count = 2; // Default number of variables
+var constraintCount = 0;
+var count = 2; // Default number of variables
   
 $(document).ready(function() {
     const inputContainer = $('.objective-function .d-flex');
@@ -123,7 +123,15 @@ $(document).ready(function() {
   var addedVars = {};
   var ZjMinusCj = [];
   var Ci = [];
+  var soln = [];
   var columns = [];
+  var inVariable;
+  var inVal;
+  var pivotElement;
+  var pivotRow;
+  var pivotColumn;
+  var computedZj;
+  var ZjMinusCj;
 
   //SOLVE BUTTON CLICKCKED
   $('#solveButton').click(function() {
@@ -248,9 +256,143 @@ $(document).ready(function() {
     document.getElementById("standardForm").innerHTML = standardHTML;
 
     initialTable();
+    createSimplexTable("1");
   });
 
+function solveTable(){
+  isOptimal = ZjMinusCj.every(val => parseFloat(val) >= 0);
+  while(!isOptimal){
+    
+  }
+}
 
+//Can take in variable, in value as a parameter
+function createSimplexTable(iteration){
+  let tableHTML = `<h5 class="text-centered mt-2"> <b>Iteration ${iteration}</b> </h5>
+    <table id="iteration${iteration}" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
+      <thead>
+        <tr class="obj">
+          <th colspan="3">C<sub>j</sub></th>`;
+
+  for (let i = 0; i < cjValues.length; i++) {
+    tableHTML += `<td class="c${i+1}">${cjValues[i]}</td>`;
+  }
+
+  tableHTML += `<th class="text-center align-middle" rowspan='2'> Q<sub>i</sub> </th> </tr>`;
+
+  //For the Cj, Soln, Q and other labels:
+  tableHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`
+
+  //Populating header Xi columns
+  for(let i = 1; i <= cjObjValues.length; i++){
+    tableHTML += `<th class="c${i}"> x<sub>${i}</sub> </th>`
+    cjValuesAndVariables[`x${i}`] = cjObjValues[i-1];
+  }
+
+  //Populating the header custom variables
+  for(let i = 1; i <= slackCount.length; i++){
+    tableHTML += `<th class="c${cjObjValues.length+i}"> S<sub>${i}</sub> </th>`
+    cjValuesAndVariables[`s${i}`] = slackCount[i-1];
+  }
+
+  for(let i = 1; i <= aCount.length; i++){
+    tableHTML += `<th class="c${cjObjValues.length+slackCount.length+i}"> A<sub>${i}</sub> </th>`
+    cjValuesAndVariables[`a${i}`] = aCount[i-1];
+  }
+
+  //Changing the Exit Variable
+  Ci[pivotRow] = inVal;
+  soln[pivotRow] = inVariable;
+
+  //Normalizing the pivotRow
+  pivotElement = columns[pivotRow][pivotColumn+1]
+  let newRow = normalize(columns[pivotRow], pivotElement)
+  columns[pivotRow] = newRow;
+  console.log(`Pivot Element: ${pivotElement}`);
+
+  //Normalizing the pivotElement
+  for (let i = 0; i < constraintCount; i++) {
+    if (i !== pivotRow) {
+      let updatedRow = [];
+      let multiplier = columns[i][pivotColumn+1]
+      console.log(`R${i+1} multiplier:${multiplier}`)
+      for(let j = 0; j < columns[i].length; j++){
+        let val = columns[i][j] - (multiplier*columns[pivotRow][j]);
+        console.log(`${columns[i][j]} - (${multiplier}*${columns[pivotRow][j]}) = ${val};`)
+        updatedRow.push(val.toFixed(2));
+      }
+      console.log(`Row ${i+1}: ${updatedRow}`)
+      columns[i] = updatedRow;
+    }
+  }
+
+  for(let i = 1; i <= constraintCount; i++){
+    tableHTML += `<tr class="row${i}"> <td class="varInitialValue"> ${Ci[i-1]} </td> <td class="varShow">${soln[i-1]} </td> <td class="varValue"> ${columns[i-1][0]} </td>`;
+    for(let j = 1; j < columns[0].length; j++){
+      tableHTML += `<td class="c${j}"> ${columns[i-1][j]} </td>`;
+    }
+  }
+
+  
+  //ZJ ROW
+  tableHTML += `<tr> <th colspan="3">Z<sub>j</sub> </th>`
+
+  computedZj = computeZj(Ci,columns)
+  console.log(`computedZj: ${cjValues}`)
+  for(let i = 0; i < columns[0].length-1; i++){
+    tableHTML += `<td class="c${i+1}"> ${computedZj[i]} </td>`
+  }
+
+
+  //Z - J
+  tableHTML += `<tr><th colspan="3">Z<sub>j</sub> - C<sub>j</sub></th>`;
+
+  console.log(`Cj Values: ${cjValues}`)
+  ZjMinusCj = computeZjMinusCj(computedZj, cjValues)
+  console.log(`ZjMinusCj: ${ZjMinusCj}`)
+  for (let i = 0; i < ZjMinusCj.length; i++) {
+    tableHTML += `<td class="c${i + 1}">${ZjMinusCj[i]}</td>`;
+  }
+
+  tableHTML += ` </tr> </thead> </table>`
+
+  document.getElementById("otherTables").innerHTML += tableHTML;
+  pivotColumn = getIndexOfMostNegativeZjCj(ZjMinusCj)
+
+  if(pivotColumn !== null){
+    highlightPivotColumn(pivotColumn, `iteration${iteration}`)
+    var qi = [];
+    for (let i = 1; i <= constraintCount; i++) {
+      let key = `r${i}`;
+      let cell = document.querySelector(`table.iteration${iteration} tr.row${i} td.c${pivotColumn + 1}`);
+      let val = 0;
+
+      if (cell && cell.textContent.trim() !== "") {
+        let parsed = parseFloat(cell.textContent.trim());
+        val = isNaN(parsed) ? 0 : parsed;
+      }
+
+      let quotient;
+      if (val === 0 || isNaN(val)) {
+        quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
+      } else {
+        quotient = (values[key] / val).toFixed(2);
+        var frac = new Fraction(quotient);
+      }
+      console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${frac.toFraction()}`);
+      qi.push(quotient);
+      document.getElementById(`qi${i}`).textContent = frac.toFraction();
+    }
+  }
+  else {
+    document.getElementById("found").innerHTML += `<h1 class="text-center"> Solution is found. </h1>`
+  }
+}
+
+var cjValues = [];
+var cjValuesAndVariables = {};
+var slackCount = [];
+var aCount = [];
 //INITIAL TABLE
 function initialTable() {
   Ci = [];
@@ -268,8 +410,8 @@ function initialTable() {
   }
 
   // Start HTML structure
-  let initialHTML = `
-    <table class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
+  let initialHTML = `<h5 class="text-centered mt-2">  <b>Initial Tableau</b> </h5>
+    <table id="initialTableau" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
       <thead>
         <tr class="obj">
           <th colspan="3">C<sub>j</sub></th>`;
@@ -283,8 +425,6 @@ function initialTable() {
   }
 
   // Add slack and artificial variable Cj values
-  var slackCount = [];
-  var aCount = [];
   for (let i = 1; i <= constraintCount; i++) {
     let sign = document.getElementById(`dropdownCompare${i}`).textContent.trim();
 
@@ -298,11 +438,10 @@ function initialTable() {
     }
   }
 
-    let cjValues = [...cjObjValues, ...slackCount, ...aCount];
-    let cjValuesAndVariables = {};
+    cjValues = [...cjObjValues, ...slackCount, ...aCount];
     for (let i = 0; i < cjValues.length; i++) {
       initialHTML += `<td class="c${i+1}">${cjValues[i]}</td>`;
-    }
+    } 
 
   // Close header row
   initialHTML += `<th class="text-center align-middle" rowspan='2'> Q<sub>i</sub> </th> </tr>`;
@@ -349,6 +488,7 @@ function initialTable() {
     } else {
       varShow = addedVars[key][0];
     }
+    soln.push(varShow);
 
     let varShowValue = ""
     const match = varShow.match(/([A-Za-z])<sub>(\d+)<\/sub>/);
@@ -360,7 +500,7 @@ function initialTable() {
       Ci.push(varShowValue);
     }
     console.log(`Ci${i}: ${Ci} `)
-    initialHTML += `<tr class="row${i}"> <td> ${varShowValue} </td> <td>${varShow} </td> <td> ${values[key]} </td>`;
+    initialHTML += `<tr class="row${i}"> <td class="varInitialValue"> ${varShowValue} </td> <td class="varShow">${varShow} </td> <td class="varValue"> ${values[key]} </td>`;
     if (!columns[i - 1]) columns[i - 1] = [];
     columns[i - 1].push(values[key]);
     console.log(`Column After Val: ${columns}`);
@@ -401,7 +541,7 @@ function initialTable() {
   }
 
   // Add Zj row
-  var computedZj = computeZj(Ci, columns);
+  computedZj = computeZj(Ci, columns);
   console.log(`Computed ZJ: ${computedZj}`);
   initialHTML += `<tr> <th colspan="3">Z<sub>j</sub> </th>`
 
@@ -412,7 +552,7 @@ function initialTable() {
   initialHTML += `<td rowspan='2'> </td> </tr>`;
 
   // Add Zj - Cj row
-  const ZjMinusCj = computeZjMinusCj(computedZj, cjValues);
+  ZjMinusCj = computeZjMinusCj(computedZj, cjValues);
 
   // Add Zj - Cj row
   initialHTML += `<tr><th colspan="3">Z<sub>j</sub> - C<sub>j</sub></th>`;
@@ -426,8 +566,9 @@ function initialTable() {
   // Inject into DOM
   document.getElementById('initialTable').innerHTML = initialHTML;
 
-  let pivotColumn = getIndexOfMostNegativeZjCj(ZjMinusCj)
-  highlightPivotColumn(pivotColumn)
+  pivotColumn = getIndexOfMostNegativeZjCj(ZjMinusCj)
+  console.log(`Pivot Column in Initial: ${pivotColumn}`);
+  highlightPivotColumn(pivotColumn, 'initialTableau')
 
   var qi = [];
   for (let i = 1; i <= constraintCount; i++) {
@@ -445,22 +586,22 @@ function initialTable() {
       quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
     } else {
       quotient = (values[key] / val).toFixed(2);
+      var frac = new Fraction(quotient);
     }
-
-    console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${quotient}`);
+    console.log(`PIVOT COL VAL: ${values[key]} / ${val} = ${frac.toFraction()}`);
     qi.push(quotient);
-    document.getElementById(`qi${i}`).textContent = quotient;
+    document.getElementById(`qi${i}`).textContent = frac.toFraction();
   }
 
-  let pivotRow = findLowestPositiveWithIndex(qi)
+  pivotRow = findLowestPositiveWithIndex(qi)
   console.log(`pivotColumn: ${pivotColumn}`)
   console.log(`Pivot row: ${pivotRow}`)
   highlightPivotRow(pivotRow)
 
-  var exitVariable = document.querySelector(`tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
-  var exitVal = document.querySelector(`tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
-  console.log(`Exit Variable: ${exitVariable}`);
-  console.log(`Exit Value: ${exitVal}`);
+  inVariable = document.querySelector(`tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
+  inVal = document.querySelector(`tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
+  console.log(`In Variable: ${inVariable}`);
+  console.log(`In Value: ${inVal}`);
 }
 
 function computeZj(ciArray, columns) {
@@ -496,6 +637,7 @@ function computeZjMinusCj(computedZj, cjValues) {
     const cj = cjValues[i] || "0";
 
     const expression = `(${zj}) - (${cj})`;
+    console.log(`expression: ${expression}`)
     const result = formatExpression(expression);
 
     resultArray.push(result);
@@ -561,12 +703,17 @@ function getIndexOfMostNegativeZjCj(zjCjArray) {
     } catch {}
   }
 
+  // If no negative values were found, return a special value (e.g., -1 or null)
+  if (minVal >= 0) {
+    return null; // or -1, depending on your needs
+  }
+
   return minIndex;
 }
 
 
-function highlightPivotColumn(index) {
-  const colClass = `.c${index+1}`;
+function highlightPivotColumn(index, table) {
+  const colClass = `#${table} .c${index+1}`;
   const pivotCells = document.querySelectorAll(colClass);
   pivotCells.forEach(cell => {
     cell.classList.add("bg-info", "text-white");
@@ -595,6 +742,14 @@ function formatExpression(expr) {
   } catch {
     return expr;
   }
+}
+
+function normalize(array, pivotElement) {
+  if (pivotElement === 0) {
+    throw new Error("Cannot divide by zero (pivotElement is 0)");
+  }
+
+  return array.map(element => parseFloat((element / pivotElement).toFixed(2)));
 }
 
 
