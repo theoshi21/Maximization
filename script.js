@@ -116,6 +116,38 @@ $(document).ready(function() {
   }
 });
 
+function reset() {
+  // Clear DOM elements
+  $("#standardForm").empty();
+  $("#initialTable").empty();
+  $("#otherTables").empty();
+  $("#found").empty();
+
+  // Reset main data structures
+  objFunctions = {};
+  constraints = {};
+  values = {};
+  addedVars = {};
+
+  // Reset tableau-related variables
+  ZjMinusCj = [];
+  Ci = [];
+  soln = [];
+  columns = [];
+  inVariable = null;
+  inVal = null;
+  pivotElement = null;
+  pivotRow = null;
+  pivotColumn = null;
+  computedZj = [];
+  cjValues = [];
+  cjValuesAndVariables = {};
+  slackCount = [];
+  aCount = [];
+  exitVariable;
+  exitValue;
+}
+
 
   var objFunctions = new Object();
   var constraints = new Object();
@@ -131,16 +163,17 @@ $(document).ready(function() {
   var pivotRow;
   var pivotColumn;
   var computedZj;
-  var ZjMinusCj;
+  var cjValues = [];
+  var cjValuesAndVariables = {};
+  var slackCount = [];
+  var aCount = [];
+  var exitVariable;
+  var exitValue;
+  var headerCount = 0;
 
   //SOLVE BUTTON CLICKCKED
   $('#solveButton').click(function() {
-  objFunctions = {};
-  constraints = {};
-  values = {};
-  addedVars = {};
-  ZjMinusCj = [];
-
+  reset();
    for (let i = 1; i <= count; i++){
       objFunctions[`x${i}`] = document.getElementById(`x${i}`).value || "0";
    }
@@ -165,8 +198,6 @@ $(document).ready(function() {
   }
 
 
-
-   //Checking the values of constraints
    for (let key in constraints) {
       console.log(`${key}: ${constraints[key]}`)
     }
@@ -256,62 +287,104 @@ $(document).ready(function() {
     document.getElementById("standardForm").innerHTML = standardHTML;
 
     initialTable();
-    createSimplexTable("1");
+    let iteration = 1;
+    let continueLoop = createSimplexTable(iteration);
+
+    // Loop until solution is found
+    while (continueLoop  && iteration < 20) {
+      iteration++;
+      continueLoop = createSimplexTable(iteration);
+    }
+
+    if(iteration === 20){
+      document.getElementById("found").innerHTML = `
+      <div class="alert alert-danger text-center" role="alert">
+        Error! The solution may not be feasible or is too large.
+      </div>
+    `;
+    }
+
+
   });
 
-function solveTable(){
-  isOptimal = ZjMinusCj.every(val => parseFloat(val) >= 0);
-  while(!isOptimal){
-    
-  }
-}
 
 //Can take in variable, in value as a parameter
 function createSimplexTable(iteration){
+  console.log(`========= ITERATION ${iteration} =========`)
+
   let tableHTML = `<h5 class="text-centered mt-2"> <b>Iteration ${iteration}</b> </h5>
     <table id="iteration${iteration}" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
       <thead>
         <tr class="obj">
           <th colspan="3">C<sub>j</sub></th>`;
 
-  for (let i = 0; i < cjValues.length; i++) {
-    tableHTML += `<td class="c${i+1}">${cjValues[i]}</td>`;
+  console.log(`cjValues: ${cjValues}`)
+  let columnCounter = 1;
+
+// Add cjValues row (first row of the table)
+  let xKeys = getSortedKeysByPrefix(cjValuesAndVariables, 'x');
+  let sKeys = getSortedKeysByPrefix(cjValuesAndVariables, 's');
+  let aKeys = getSortedKeysByPrefix(cjValuesAndVariables, 'a');
+
+  for (const key of xKeys) {
+    tableHTML += `<td class="c${columnCounter}">${cjValuesAndVariables[key]}</td>`;
+    columnCounter++;
+  }
+  for (const key of sKeys) {
+    tableHTML += `<td class="c${columnCounter}">${cjValuesAndVariables[key]}</td>`;
+    columnCounter++;
+  }
+  for (const key of aKeys) {
+    tableHTML += `<td class="c${columnCounter}">${cjValuesAndVariables[key]}</td>`;
+    columnCounter++;
   }
 
   tableHTML += `<th class="text-center align-middle" rowspan='2'> Q<sub>i</sub> </th> </tr>`;
 
-  //For the Cj, Soln, Q and other labels:
-  tableHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`
 
-  //Populating header Xi columns
-  for(let i = 1; i <= cjObjValues.length; i++){
-    tableHTML += `<th class="c${i}"> x<sub>${i}</sub> </th>`
-    cjValuesAndVariables[`x${i}`] = cjObjValues[i-1];
+  // Second row (headers for Xi, Si, Ai, etc.)
+  columnCounter = 1;
+  tableHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`;
+
+  for (const key of xKeys) {
+    let index = key.slice(1); // Get the numeric part
+    tableHTML += `<th class="c${columnCounter}"> x<sub>${index}</sub> </th>`;
+    columnCounter++;
   }
 
-  //Populating the header custom variables
-  for(let i = 1; i <= slackCount.length; i++){
-    tableHTML += `<th class="c${cjObjValues.length+i}"> S<sub>${i}</sub> </th>`
-    cjValuesAndVariables[`s${i}`] = slackCount[i-1];
+  for (const key of sKeys) {
+    let index = key.slice(1);
+    tableHTML += `<th class="c${columnCounter}"> S<sub>${index}</sub> </th>`;
+    columnCounter++;
   }
 
-  for(let i = 1; i <= aCount.length; i++){
-    tableHTML += `<th class="c${cjObjValues.length+slackCount.length+i}"> A<sub>${i}</sub> </th>`
-    cjValuesAndVariables[`a${i}`] = aCount[i-1];
+  for (const key of aKeys) {
+    let index = key.slice(1);
+    tableHTML += `<th class="c${columnCounter}"> A<sub>${index}</sub> </th>`;
+    columnCounter++;
   }
+
+  tableHTML += `</tr>`;
+
+  sortCjValuesAndVariables(cjValuesAndVariables);
+  console.log(cjValuesAndVariables);
 
   //Changing the Exit Variable
   Ci[pivotRow] = inVal;
   soln[pivotRow] = inVariable;
 
   //Normalizing the pivotRow
+  console.log(`ITERATION ${iteration}`)
+  console.log("columns: ", columns)
+  console.log(`pivotRow: ${pivotRow}, pivotColumn: ${pivotColumn}`)
   pivotElement = columns[pivotRow][pivotColumn+1]
+  console.log(`Pivot Element: ${pivotElement}`);
   let newRow = normalize(columns[pivotRow], pivotElement)
   columns[pivotRow] = newRow;
-  console.log(`Pivot Element: ${pivotElement}`);
 
   //Normalizing the pivotElement
   for (let i = 0; i < constraintCount; i++) {
+    let key = `r${i+1}`
     if (i !== pivotRow) {
       let updatedRow = [];
       let multiplier = columns[i][pivotColumn+1]
@@ -323,14 +396,19 @@ function createSimplexTable(iteration){
       }
       console.log(`Row ${i+1}: ${updatedRow}`)
       columns[i] = updatedRow;
+      console.log(columns[i])
     }
+    values[key] = columns[i][0]
   }
+  console.log(values)
+
 
   for(let i = 1; i <= constraintCount; i++){
     tableHTML += `<tr class="row${i}"> <td class="varInitialValue"> ${Ci[i-1]} </td> <td class="varShow">${soln[i-1]} </td> <td class="varValue"> ${columns[i-1][0]} </td>`;
     for(let j = 1; j < columns[0].length; j++){
       tableHTML += `<td class="c${j}"> ${columns[i-1][j]} </td>`;
     }
+    tableHTML += `<td id="i${iteration}qi${i}"> </td>`
   }
 
   
@@ -348,6 +426,14 @@ function createSimplexTable(iteration){
   tableHTML += `<tr><th colspan="3">Z<sub>j</sub> - C<sub>j</sub></th>`;
 
   console.log(`Cj Values: ${cjValues}`)
+  cjValues = [];
+  for(let i = 0; i < Object.keys(cjValuesAndVariables).length; i++){
+     const key = Object.keys(cjValuesAndVariables)[i];
+     const value = cjValuesAndVariables[key];
+     cjValues.push(value)
+  }
+
+
   ZjMinusCj = computeZjMinusCj(computedZj, cjValues)
   console.log(`ZjMinusCj: ${ZjMinusCj}`)
   for (let i = 0; i < ZjMinusCj.length; i++) {
@@ -364,7 +450,7 @@ function createSimplexTable(iteration){
     var qi = [];
     for (let i = 1; i <= constraintCount; i++) {
       let key = `r${i}`;
-      let cell = document.querySelector(`table.iteration${iteration} tr.row${i} td.c${pivotColumn + 1}`);
+      let cell = document.querySelector(`#iteration${iteration} tr.row${i} td.c${pivotColumn + 1}`);
       let val = 0;
 
       if (cell && cell.textContent.trim() !== "") {
@@ -374,23 +460,97 @@ function createSimplexTable(iteration){
 
       let quotient;
       if (val === 0 || isNaN(val)) {
-        quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
+        quotient = "—"; // Invalid division or negative result
       } else {
-        quotient = (values[key]/val).toFixed(2);
+        quotient = (values[key] / val).toFixed(2);
       }
+      console.log(`quotient: ${quotient}`)
+
       qi.push(quotient);
-      document.getElementById(`qi${i}`).textContent = (`${values[key]} / ${val}`);
+      if(quotient === "—" || quotient < 0){
+        document.getElementById(`i${iteration}qi${i}`).textContent = `—`
+      }
+      else {
+        document.getElementById(`i${iteration}qi${i}`).textContent = `${values[key]} / ${val}`
+      }
     }
+
+
+    pivotRow = findLowestPositiveWithIndex(qi)
+    console.log(`pivotColumn: ${pivotColumn}`)
+    console.log(`Pivot row: ${pivotRow}`)
+    highlightPivotRow(pivotRow, `iteration${iteration}`)
+
+    inVariable = document.querySelector(`tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
+    inVal = document.querySelector(`tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
+    console.log(`In Variable: ${inVariable}`);
+    console.log(`In Value: ${inVal}`);
+
+    exitVariable = document.querySelector(`#iteration${iteration} tr.row${pivotRow+1} td.varShow`).innerHTML.trim();
+    exitValue = document.querySelector(`#iteration${iteration} tr.row${pivotRow+1} td.varInitialValue`).innerHTML.trim();
+    console.log(`Exit Variable: ${exitVariable}`);
+    console.log(`Exit Value: ${exitValue}`);
+
+    console.log(JSON.stringify(cjValuesAndVariables, null, 2));
+    console.log(`Column before deletion: ${JSON.stringify(columns, null, 2)}`);
+
+    const match = exitVariable.match(/([aA])<sub>(\d+)<\/sub>/);
+      if (match) {
+        const letter = match[1].toLowerCase(); // e.g., 'a'
+        const index = match[2];                // e.g., '2'
+        const key = `${letter}${index}`;       // 'a2'
+        removeColumn(key)
+        delete cjValuesAndVariables[key];
+      }
+    console.log(`Column after deletion: ${JSON.stringify(columns, null, 2)}`);
+
+    console.log(JSON.stringify(cjValuesAndVariables, null, 2));
+
+    return true;
   }
   else {
-    document.getElementById("found").innerHTML += `<h1 class="text-center"> Solution is found. </h1>`
+    document.getElementById("found").innerHTML += `<h1 class="text-center mt-3"> Solution is found. </h1>`
+
+    let solution = [];
+    const rows = document.querySelectorAll(`#iteration${iteration} tr`);
+
+    rows.forEach(row => {
+      const varShowElem = row.querySelector("td.varShow");
+      const varValueElem = row.querySelector("td.varValue");
+
+      if (varShowElem && varValueElem) {
+        const varShowText = varShowElem.textContent.trim();
+        const varValueText = varValueElem.textContent.trim();
+
+        console.log(varShowText, varValueText);
+
+        if (varShowText.startsWith("x")) {
+          solution.push([varShowText, varValueText]);
+        }
+      }
+    });
+
+
+    //Pa FIX na lang ako guys ng formatting, nasa loob ng solutions[] array lang 'yung mga sagot thanks!
+    document.getElementById("solutions").innerHTML = "";
+
+    solution.forEach(([varShow, varValue]) => {
+      const formattedVarShow = varShow.replace(/x(\d+)/, 'x<sub>$1</sub>');
+      
+      const pElement = document.createElement("p");
+      pElement.className = "fw-bold text-center mb-1"; 
+      pElement.className = "text-center fw-bold mb-2";
+      pElement.style.fontSize = "2rem";
+      pElement.innerHTML = `${formattedVarShow} = ${varValue}`;
+      
+      document.getElementById("solutions").appendChild(pElement);
+      document.getElementById("solutions").innerHTML += "<br>";
+    });
+
+    return false;
   }
 }
 
-var cjValues = [];
-var cjValuesAndVariables = {};
-var slackCount = [];
-var aCount = [];
 //INITIAL TABLE
 function initialTable() {
   Ci = [];
@@ -400,7 +560,6 @@ function initialTable() {
   // For computing Cj Column
   for (let i = 1; i <= constraintCount; i++) {
     let sign = document.getElementById(`dropdownCompare${i}`).textContent.trim();
-    console.log(`Sign: ${sign}`);
 
     // Add 1 to the column if signs are <= or =, add 2 if sign is >=
     cjCol += (sign === "<=" || sign === "=") ? 1 : (sign === ">=" ? 2 : 0);
@@ -436,6 +595,8 @@ function initialTable() {
     }
   }
 
+  headerCount = count+cjCol;
+
     cjValues = [...cjObjValues, ...slackCount, ...aCount];
     for (let i = 0; i < cjValues.length; i++) {
       initialHTML += `<td class="c${i+1}">${cjValues[i]}</td>`;
@@ -468,7 +629,11 @@ function initialTable() {
     console.log(`x: ${cjValuesAndVariables[x]}`);
   }
 
+  sortCjValuesAndVariables(cjValuesAndVariables);
+
   //Adding the row depending on the constraints
+  console.log(`ADDED VARS`)
+  console.log(JSON.stringify(addedVars, null, 2));
   let allAddedVars = [];
   for (let k in addedVars) {
     allAddedVars = allAddedVars.concat(addedVars[k]);
@@ -514,26 +679,30 @@ function initialTable() {
     console.log(`Column After Constraints: ${columns}`);
 
     // Add added variables with class names
-    for (let varLabel of uniqueAddedVars) {
-      let cellValue = "0";
+    const cjKeys = Object.keys(cjValuesAndVariables); // e.g., ["x1", "x2", "s1", "a1", ...]
 
-      if (addedVars[key].includes(varLabel)) {
-        if (varLabel.startsWith("S")) {
-          cellValue = "1";
-        } else if (varLabel.startsWith("-S")) {
-          cellValue = "-1";
-        } else if (varLabel.startsWith("A")) {
-          cellValue = "1";
-        }
+    for (let keyName of cjKeys) {
+      if (keyName.startsWith("x")) continue; // already added earlier
+
+      const index = keyName.slice(1); // "1" from "s1", "a1", etc.
+      const htmlLabel = keyName.startsWith("s") ? `S<sub>${index}</sub>` : `A<sub>${index}</sub>`;
+      const negativeLabel = `-S<sub>${index}</sub>`;
+
+      // Check if the current row (e.g., addedVars[r1]) contains either form
+      let cellValue = "0";
+      if (addedVars[key].includes(htmlLabel)) {
+        cellValue = "1";
+      } else if (addedVars[key].includes(negativeLabel)) {
+        cellValue = "-1";
       }
 
-      initialHTML += `<td class="c${colIndex}"> ${cellValue} </td>`;
+      initialHTML += `<td class="c${colIndex}">${cellValue}</td>`;
       colIndex++;
-      columns[i-1].push(cellValue);
+      columns[i - 1].push(cellValue);
     }
     console.log(JSON.stringify(columns, null, 2));
 
-    initialHTML += `<td id=qi${i}></td>` //I WANT TO ADD THE QI VALUES HERE!
+    initialHTML += `<td id=initialqi${i}></td>` //I WANT TO ADD THE QI VALUES HERE!
     initialHTML += `</tr>`;
 
   }
@@ -571,33 +740,124 @@ function initialTable() {
   var qi = [];
   for (let i = 1; i <= constraintCount; i++) {
     let key = `r${i}`;
-    let cell = document.querySelector(`tr.row${i} td.c${pivotColumn + 1}`);
+    let cell = document.querySelector(`#initialTableau tr.row${i} td.c${pivotColumn + 1}`);
+    console.log(`cell value: ${cell.textContent}`)
     let val = 0;
 
     if (cell && cell.textContent.trim() !== "") {
       let parsed = parseFloat(cell.textContent.trim());
       val = isNaN(parsed) ? 0 : parsed;
+      console.log(`cell value to val: ${val} `)
     }
 
-    let quotient;
-    if (val === 0 || isNaN(val)) {
-      quotient = "—"; // or you can use `null` or `"NaN"` depending on your logic
-    } else {
-      quotient = (values[key] / val).toFixed(2);
-    }
-    qi.push(quotient);
-    document.getElementById(`qi${i}`).textContent = (`${values[key]} / ${val}`);
+     let quotient;
+      if (val === 0 || isNaN(val) ) {
+        quotient = "—"; // Invalid division or negative result
+      } else {
+        quotient = (values[key] / val).toFixed(2);
+      }
+      console.log(`quotient: ${quotient}`)
+
+      qi.push(quotient);
+      if(quotient === "—" || quotient < 0){
+        document.getElementById(`initialqi${i}`).textContent = `—`
+      }
+      else {
+        document.getElementById(`initialqi${i}`).textContent = `${values[key]} / ${val}`
+      }
   }
+  console.log(`qi: ${qi}`)
 
   pivotRow = findLowestPositiveWithIndex(qi)
   console.log(`pivotColumn: ${pivotColumn}`)
   console.log(`Pivot row: ${pivotRow}`)
-  highlightPivotRow(pivotRow)
+  highlightPivotRow(pivotRow, "initialTableau")
 
-  inVariable = document.querySelector(`tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
-  inVal = document.querySelector(`tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
+  inVariable = document.querySelector(`#initialTableau tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
+  inVal = document.querySelector(`#initialTableau tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
   console.log(`In Variable: ${inVariable}`);
   console.log(`In Value: ${inVal}`);
+
+  exitVariable = document.querySelector(`#initialTableau tr.row${pivotRow+1} td.varShow`).innerHTML.trim();
+  exitValue = document.querySelector(`#initialTableau tr.row${pivotRow+1} td.varInitialValue`).innerHTML.trim();
+  console.log(`Exit Variable: ${exitVariable}`);
+  console.log(`Exit Value: ${exitValue}`);
+
+  console.log(JSON.stringify(cjValuesAndVariables, null, 2));
+  console.log(`Column before deletion: ${JSON.stringify(columns, null, 2)}`);
+
+  const match = exitVariable.match(/([aA])<sub>(\d+)<\/sub>/);
+    if (match) {
+      const letter = match[1].toLowerCase(); // e.g., 'a'
+      const index = match[2];                // e.g., '2'
+      const key = `${letter}${index}`;       // 'a2'
+      removeColumn(key)
+      delete cjValuesAndVariables[key];
+    }
+    console.log(`Column after deletion: ${JSON.stringify(columns, null, 2)}`);
+
+    console.log(JSON.stringify(cjValuesAndVariables, null, 2));
+}
+
+function countVariablePrefixes(obj, prefix = null) {
+  const counts = { x: 0, s: 0, a: 0 };
+
+  for (let key in obj) {
+    const firstChar = key[0];
+    if (counts.hasOwnProperty(firstChar)) {
+      counts[firstChar]++;
+    }
+  }
+
+  if (prefix) {
+    return counts[prefix] || 0;
+  }
+
+  return counts;
+}
+
+function getSortedKeysByPrefix(obj, prefix) {
+  return Object.keys(obj)
+    .filter(key => key.startsWith(prefix))
+    .sort((a, b) => {
+      const numA = parseInt(a.slice(1));
+      const numB = parseInt(b.slice(1));
+      return numA - numB;
+    });
+}
+
+function sortCjValuesAndVariables(obj) {
+  const prefixOrder = { x: 1, s: 2, a: 3 };
+
+  const sortedObj = Object.keys(obj)
+    .sort((k1, k2) => {
+      const p1 = prefixOrder[k1[0]];
+      const p2 = prefixOrder[k2[0]];
+
+      if (p1 === p2) {
+        // Compare numeric parts
+        const num1 = parseInt(k1.slice(1), 10);
+        const num2 = parseInt(k2.slice(1), 10);
+        return num1 - num2;
+      }
+
+      return p1 - p2;
+    })
+    .reduce((acc, key) => {
+      acc[key] = obj[key];
+      return acc;
+    }, {});
+
+  return sortedObj;
+}
+
+function removeColumn(inputKey) {
+  const keys = Object.keys(cjValuesAndVariables);
+  const indexArtificial = keys.indexOf(inputKey);
+  console.log(indexArtificial); // e.g., 5 (if it's the 6th item, since index is 0-based)
+  for (let i = 0; i < columns.length; i++) {
+    columns[i].splice(indexArtificial+1, 1);
+  }
 }
 
 function computeZj(ciArray, columns) {
@@ -659,7 +919,27 @@ function findLowestPositiveWithIndex(qi) {
     } catch {}
   }
 
-  return minIndex;
+  return minIndex !== -1 ? minIndex : qi.length-1;
+}
+
+function getPivotRow(columnIndex) {
+  let minRatio = Infinity;
+  let rowIndex = null;
+
+  for (let i = 0; i < constraintCount; i++) {
+    let denominator = parseFloat(columns[i][columnIndex + 1]);
+    let numerator = parseFloat(columns[i][0]);
+
+    if (denominator > 0) {
+      let ratio = numerator / denominator;
+      if (ratio < minRatio) {
+        minRatio = ratio;
+        rowIndex = i;
+      }
+    }
+  }
+
+  return rowIndex;
 }
 
 function getIndexOfHighest(zjCjArray) {
@@ -716,8 +996,8 @@ function highlightPivotColumn(index, table) {
   });
 }
 
-function highlightPivotRow(index) {
-  const rowClass = `.row${index + 1}`;
+function highlightPivotRow(index, table) {
+  const rowClass = `#${table} .row${index + 1}`;
   const pivotRow = document.querySelectorAll(rowClass);
   pivotRow.forEach(cell => {
     cell.classList.add("bg-info", "text-white");
