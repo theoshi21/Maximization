@@ -24,18 +24,18 @@
       </h1>
 
       <!-- Objective Function Section -->
-      <section class="mb-4">
-        <h5 class="bg-secondary text-white p-2 w-auto text-center">Objective Function:</h5>
-
-        <div class="form-group mb-3 d-flex justify-content-center align-items-center">
-          <label for="numVariablesInput" class="mr-3 mb-0"><strong>Variables:</strong></label>
+	  <div class="form-group mb-3 d-flex justify-content-center align-items-center">
+          <label for="numVariablesInput" class="mr-3 mb-0"><strong>Decision Variables:</strong></label>
           <input type="number" id="numVariablesInput" class="form-control bg-dark text-white text-center" style="width: 7vw;" value="2"/>
         </div>
+		
+      <section>
+        <h5 class="bg-secondary text-white p-3 w-auto text-center">Objective Function:</h5>
 
         <!-- Input fields for the objective function -->
         <form class="varRows d-flex justify-content-center mb-3">
-          <div class="objective-function d-flex align-items-center">
-            <span class="max-z-label">Max Z =</span>
+          <div class="objective-function d-flex align-items-center p-2">
+            <span class="max-z-label">Z =</span>
             <div id="objectiveInputs" class="d-flex flex-wrap align-items-center justify-content-center"></div>
           </div>
         </form>
@@ -55,8 +55,8 @@
       </section>
 
       <!-- Solution Output Section -->
-      <section id="solutionContainer" class="mt-5">
-        <div id="standardForm" class="mb-3 text-center"></div>
+      <section id="solutionContainer" class="mt-4">
+        <div id="standardForm" class="font-weight-bold mb-3 text-center"></div>
 
         <div class="d-flex justify-content-center">
           <div id="initialTable" class="row justify-content-center"></div>

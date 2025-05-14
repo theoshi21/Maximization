@@ -229,7 +229,7 @@ function reset() {
 
 
     let standardHTML = `
-    <h5 class="bg-secondary text-white text-center mt-3 py-2">Standard Form</h5>`;
+    <h5 class="bg-secondary text-white text-center mt-3 py-2">Standard Form: </h5>`;
   
     let arbitraryCounter = 1;
 
@@ -281,7 +281,7 @@ function reset() {
         }
 
         let valuesText = expressionParts.join(' + ') + ` = ${values[key] || "0"}`;
-        standardHTML += `<p class="text-center">${valuesText}</p>`;
+        standardHTML += `<h4 class="text-center">${valuesText}</h4>`;
               }
             }
     document.getElementById("standardForm").innerHTML = standardHTML;
@@ -344,7 +344,7 @@ function createSimplexTable(iteration){
 
   // Second row (headers for Xi, Si, Ai, etc.)
   columnCounter = 1;
-  tableHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`;
+  tableHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Sol </th> <th> Q </th>`;
 
   for (const key of xKeys) {
     let index = key.slice(1); // Get the numeric part
@@ -382,7 +382,7 @@ function createSimplexTable(iteration){
   let newRow = normalize(columns[pivotRow], pivotElement)
   columns[pivotRow] = newRow;
 
-  //Normalizing the pivotElement
+  //Normalizing the other row using the normalized pivot row
   for (let i = 0; i < constraintCount; i++) {
     let key = `r${i+1}`
     if (i !== pivotRow) {
@@ -412,7 +412,7 @@ function createSimplexTable(iteration){
   }
 
   
-  //ZJ ROW
+  //ZJ Row
   tableHTML += `<tr> <th colspan="3">Z<sub>j</sub> </th>`
 
   computedZj = computeZj(Ci,columns)
@@ -422,7 +422,7 @@ function createSimplexTable(iteration){
   }
 
 
-  //Z - J
+  //Zj-Cj Row
   tableHTML += `<tr><th colspan="3">Z<sub>j</sub> - C<sub>j</sub></th>`;
 
   console.log(`Cj Values: ${cjValues}`)
@@ -471,6 +471,7 @@ function createSimplexTable(iteration){
         document.getElementById(`i${iteration}qi${i}`).textContent = `—`
       }
       else {
+		 
         document.getElementById(`i${iteration}qi${i}`).textContent = `${values[key]} / ${val}`
       }
     }
@@ -530,25 +531,58 @@ function createSimplexTable(iteration){
       }
     });
 
+  
+	let xVars = getSortedKeysByPrefix(cjValuesAndVariables,'x')
+	// Extract variable values from `solution` into a map
+	const varMap = {};
+	solution.forEach(([varName, varValue]) => {
+	  varMap[varName] = parseFloat(varValue);
+	});
+		let Z = 0;
+		let zTerms = [];
 
+  for(const keys in xVars){
+    const varName = xVars[keys]
+    const coeff = cjValuesAndVariables[varName]
+    const value = varMap[varName] || 0;
+
+    Z += coeff * value;
+    zTerms.push(`${coeff}(${value})`);
+  }
     //Pa FIX na lang ako guys ng formatting, nasa loob ng solutions[] array lang 'yung mga sagot thanks!
     document.getElementById("solutions").innerHTML = "";
 
     solution.forEach(([varShow, varValue]) => {
-      const formattedVarShow = varShow.replace(/x(\d+)/, 'x<sub>$1</sub>');
-      
-      const pElement = document.createElement("p");
-      pElement.className = "fw-bold text-center mb-1"; 
-      pElement.className = "text-center fw-bold mb-2";
-      pElement.style.fontSize = "2rem";
-      pElement.innerHTML = `${formattedVarShow} = ${varValue}`;
-      
-      document.getElementById("solutions").appendChild(pElement);
-      document.getElementById("solutions").innerHTML += "<br>";
+    const formattedVarShow = varShow.replace(/x(\d+)/, 'x<sub>$1</sub>');
+
+    // Create a wrapper div
+    const wrapperDiv = document.createElement("div");
+    wrapperDiv.className = "text-center mb-4"; // center align and spacing between sets
+
+    // Create variable value paragraph
+    const pElement = document.createElement("p");
+    pElement.className = "fw-bold";
+    pElement.style.fontSize = "2rem";
+    pElement.innerHTML = `${formattedVarShow} = ${varValue}`;
+
+    // Create Z expression paragraph
+    const zExpression = `Z = ${zTerms.join(" + ")} = ${Z}`;
+    const zElement = document.createElement("p");
+    zElement.className = "fw-bold mt-2";
+    zElement.style.fontSize = "2rem";
+    zElement.innerHTML = zExpression;
+
+    // Append both to wrapper
+    wrapperDiv.appendChild(pElement);
+    wrapperDiv.appendChild(zElement);
+
+    // Append wrapper to main solutions container
+    document.getElementById("solutions").appendChild(wrapperDiv);
     });
 
     return false;
   }
+  
 }
 
 //INITIAL TABLE
@@ -606,7 +640,7 @@ function initialTable() {
   initialHTML += `<th class="text-center align-middle" rowspan='2'> Q<sub>i</sub> </th> </tr>`;
 
   //For the Cj, Soln, Q and other labels:
-  initialHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Soln </th> <th> Q </th>`
+  initialHTML += `<tr class="headerRow"><th class=""> C<sub>i</sub> </th> <th> Sol </th> <th> Q </th>`
 
   //Populating header Xi columns
   for(let i = 1; i <= keys.length; i++){
