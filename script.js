@@ -86,7 +86,7 @@ $(document).ready(function() {
 
         constraintHTML += `
             <div class="dropdown m-2">
-                <button id="dropdownCompare${constraintCount}" class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown"> &lt;= </button>
+                <button id="dropdownCompare${constraintCount}" class="btn btn-secondary dropdown-toggle" style="background-color: #129990; type="button" data-toggle="dropdown"> &lt;= </button>
                 <div class="dropdown-menu">
                     <a class="dropdown-item compare" href="#">&lt;=</a>
                     <a class="dropdown-item compare" href="#">&gt;=</a>
@@ -172,151 +172,142 @@ function reset() {
   var headerCount = 0;
 
   //SOLVE BUTTON CLICKCKED
-  $('#solveButton').click(function() {
+$('#solveButton').click(function() {
   reset();
-   for (let i = 1; i <= count; i++){
+  $('#solveButton').prop('disabled', true);
+
+  for (let i = 1; i <= count; i++) {
       objFunctions[`x${i}`] = document.getElementById(`x${i}`).value || "0";
-   }
-
-   //Checking the inside of the array
-   for (x in objFunctions){
-    console.log(`VALUES: ${x} is ${objFunctions[x]}`);
-   }
-
-  for (let i = 1; i <= constraintCount; i++) {
-    for (let j = 1; j <= count; j++) {
-      if (!constraints[`r${i}`]) {
-        constraints[`r${i}`] = [];
-      }
-
-      // Now you can safely push the value to the array
-      constraints[`r${i}`].push(document.getElementById(`r${i}x${j}`).value);
-    }
-    //Adding the value 2nd to the last in the array and the comparison operator in the last one.
-    values[`r${i}`] = document.getElementById(`val${i}`).value;
-    constraints[`r${i}`].push(document.getElementById(`dropdownCompare${i}`).textContent);
   }
 
+  // Checking the inside of the array
+  for (x in objFunctions){
+      console.log(`VALUES: ${x} is ${objFunctions[x]}`);
+  }
 
-   for (let key in constraints) {
-      console.log(`${key}: ${constraints[key]}`)
-    }
-
-    for(let key in values){
-      console.log(`${key}: ${values[key]}`)
-    }
-
-    var standardForm = JSON.parse(JSON.stringify(constraints));
-       for (let key in constraints) {
-      if (constraints.hasOwnProperty(key)) {
-        let lastValue = constraints[key][constraints[key].length - 1];
-        if (lastValue.trim() === "<=") {
-          constraints[key][constraints[key].length - 1] = 1;
-        }
-        if(lastValue.trim() === ">=") {
-          constraints[key][constraints[key].length - 1] = -1;
-          constraints[key].push('-M')
-        }
-        if(lastValue.trim() === "=") {
-          constraints[key][constraints[key].length - 1] = '-M';
-        }
+  // Process constraints
+  for (let i = 1; i <= constraintCount; i++) {
+      for (let j = 1; j <= count; j++) {
+          if (!constraints[`r${i}`]) {
+              constraints[`r${i}`] = [];
+          }
+          constraints[`r${i}`].push(document.getElementById(`r${i}x${j}`).value);
       }
-    }
+      values[`r${i}`] = document.getElementById(`val${i}`).value;
+      constraints[`r${i}`].push(document.getElementById(`dropdownCompare${i}`).textContent);
+  }
 
-    for(let key in constraints){
-      console.log(constraints[key])
-    }
+  // Update the standard form section
+  var standardForm = JSON.parse(JSON.stringify(constraints));
+  for (let key in constraints) {
+      if (constraints.hasOwnProperty(key)) {
+          let lastValue = constraints[key][constraints[key].length - 1];
+          if (lastValue.trim() === "<=") {
+              constraints[key][constraints[key].length - 1] = 1;
+          }
+          if (lastValue.trim() === ">=") {
+              constraints[key][constraints[key].length - 1] = -1;
+              constraints[key].push('-M')
+          }
+          if (lastValue.trim() === "=") {
+              constraints[key][constraints[key].length - 1] = '-M';
+          }
+      }
+  }
 
+  let standardHTML = `
+  <h5 class="text-white text-center mt-3 py-3" style="background-color: #6FB2D2;">Standard Form: </h5>`;
 
-    let standardHTML = `
-    <h5 class="bg-secondary text-white text-center mt-3 py-2">Standard Form: </h5>`;
-  
-    let arbitraryCounter = 1;
+  let arbitraryCounter = 1;
 
-    var standardForm = JSON.parse(JSON.stringify(constraints)); // deep copy
+  var standardForm = JSON.parse(JSON.stringify(constraints)); // deep copy
 
-    for (let i = 1; i <= constraintCount; i++) {
+  for (let i = 1; i <= constraintCount; i++) {
       let key = `r${i}`;
       addedVars[key] = [];
 
       if (standardForm.hasOwnProperty(key)) {
-        let val = [...standardForm[key]];
+          let val = [...standardForm[key]];
 
-        // Replace empty inputs with "0"
-        for (let j = 0; j < val.length; j++) {
-          if (val[j] === "") {
-            val[j] = "0";
+          // Replace empty inputs with "0"
+          for (let j = 0; j < val.length; j++) {
+              if (val[j] === "") {
+                  val[j] = "0";
+              }
           }
-        }
 
           // Apply transformations and track added vars
-        if (val[val.length - 1] === "1" || val[val.length - 1] === 1) {
-          val[val.length - 1] = `S<sub>${i}</sub>`;
-          addedVars[key].push(val[val.length - 1]);
-        } else if (
-          (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') &&
-          (val[val.length - 2] === -1 || val[val.length - 2] === "-1") &&
-          val.length > count + 1
-        ) {
-          val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
-          val[val.length - 2] = `-S<sub>${i}</sub>`;
-          addedVars[key].push(val[val.length - 2]);
-          addedVars[key].push(val[val.length - 1]);
-        } else if (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') {
-          val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
-          addedVars[key].push(val[val.length - 1]);
-        }
+          if (val[val.length - 1] === "1" || val[val.length - 1] === 1) {
+              val[val.length - 1] = `S<sub>${i}</sub>`;
+              addedVars[key].push(val[val.length - 1]);
+          } else if (
+              (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') &&
+              (val[val.length - 2] === -1 || val[val.length - 2] === "-1") &&
+              val.length > count + 1
+          ) {
+              val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
+              val[val.length - 2] = `-S<sub>${i}</sub>`;
+              addedVars[key].push(val[val.length - 2]);
+              addedVars[key].push(val[val.length - 1]);
+          } else if (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') {
+              val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
+              addedVars[key].push(val[val.length - 1]);
+          }
 
+          // Use to add labels to the standard form
+          let expressionParts = [];
+          for (let j = 0; j < count; j++) {
+              let coeff = val[j] || "0";
+              expressionParts.push(`${coeff}x<sub>${j+1}</sub>`);
+          }
 
-        //Use to add labels to the standard form
-        let expressionParts = [];
-        for (let j = 0; j < count; j++) {
-          let coeff = val[j] || "0";
-          expressionParts.push(`${coeff}x<sub>${j+1}</sub>`);
-        }
+          // Add slack, surplus, or arbitrary variables (e.g., S1, -S2, A1)
+          for (let j = count; j < val.length; j++) {
+              expressionParts.push(`${val[j]}`);
+          }
 
-        // Add slack, surplus, or arbitrary variables (e.g., S1, -S2, A1)
-        for (let j = count; j < val.length; j++) {
-          expressionParts.push(`${val[j]}`);
-        }
+          let valuesText = expressionParts.join(' + ') + ` = ${values[key] || "0"}`;
+          standardHTML += `<h4 class="text-center">${valuesText}</h4>`;
+      }
+  }
+  document.getElementById("standardForm").innerHTML = standardHTML;
 
-        let valuesText = expressionParts.join(' + ') + ` = ${values[key] || "0"}`;
-        standardHTML += `<h4 class="text-center">${valuesText}</h4>`;
-              }
-            }
-    document.getElementById("standardForm").innerHTML = standardHTML;
+  initialTable();
+  let iteration = 1;
+  let continueLoop = createSimplexTable(iteration);
 
-    initialTable();
-    let iteration = 1;
-    let continueLoop = createSimplexTable(iteration);
-
-    // Loop until solution is found
-    while (continueLoop  && iteration < 20) {
+  // Loop until solution is found
+  while (continueLoop && iteration < 20) {
       iteration++;
       continueLoop = createSimplexTable(iteration);
-    }
+  }
 
-    if(iteration === 20){
-      document.getElementById("found").innerHTML = `
-      <div class="alert alert-danger text-center" role="alert">
-        Error! The solution may not be feasible or is too large.
-      </div>
-    `;
-    }
+  if (iteration === 20) {
+      document.getElementById("found").innerHTML = 
+      `<div class="alert alert-danger text-center" role="alert">
+          Error! The solution may not be feasible or is too large.
+      </div>`;
+  }
 
+  $('#solveButton').prop('disabled', false);
 
-  });
+  // **Redirect to Solution Tab** (this is where you insert the change)
+  $('#solution-tab').tab('show');  // This line switches to the "Solution" tab
+});
+
 
 
 //Can take in variable, in value as a parameter
 function createSimplexTable(iteration){
   console.log(`========= ITERATION ${iteration} =========`)
 
-  let tableHTML = `<h5 class="text-centered mt-2"> <b>Iteration ${iteration}</b> </h5>
-    <table id="iteration${iteration}" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
-      <thead>
-        <tr class="obj">
-          <th colspan="3">C<sub>j</sub></th>`;
+    let tableHTML = `<h5 class="text-centered mt-2">
+  <b style="color: #096B68; font-family:'Rubik Mono One', sans-serif;">Iteration ${iteration}</b>
+</h5>
+<table id="iteration${iteration}" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
+  <thead>
+    <tr class="obj">
+      <th colspan="3">C<sub>j</sub></th>`;
 
   console.log(`cjValues: ${cjValues}`)
   let columnCounter = 1;
@@ -339,7 +330,7 @@ function createSimplexTable(iteration){
     columnCounter++;
   }
 
-  tableHTML += `<th class="text-center align-middle" rowspan='2'> Q<sub>i</sub> </th> </tr>`;
+  tableHTML += `<th class="text-center align-middle"rowspan='2'> Q<sub>i</sub> </th> </tr>`;
 
 
   // Second row (headers for Xi, Si, Ai, etc.)
@@ -392,7 +383,7 @@ function createSimplexTable(iteration){
       for(let j = 0; j < columns[i].length; j++){
         let val = columns[i][j] - (multiplier*columns[pivotRow][j]);
         console.log(`${columns[i][j]} - (${multiplier}*${columns[pivotRow][j]}) = ${val};`)
-        updatedRow.push(val.toFixed(2));
+        updatedRow.push(val === 0 ? "0" : val.toFixed(2));
       }
       console.log(`Row ${i+1}: ${updatedRow}`)
       columns[i] = updatedRow;
@@ -510,7 +501,7 @@ function createSimplexTable(iteration){
     return true;
   }
   else {
-    document.getElementById("found").innerHTML += `<h1 class="text-center mt-3"> Solution is found. </h1>`
+    document.getElementById("found").innerHTML += `<h1 class="text-center mt-1"> Solution is found </h1>`
 
     let solution = [];
     const rows = document.querySelectorAll(`#iteration${iteration} tr`);
@@ -601,11 +592,13 @@ function initialTable() {
   }
 
   // Start HTML structure
-  let initialHTML = `<h5 class="text-centered mt-2">  <b>Initial Tableau</b> </h5>
-    <table id="initialTableau" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
-      <thead>
-        <tr class="obj">
-          <th colspan="3">C<sub>j</sub></th>`;
+    let initialHTML = `<h5 class="text-centered mt-2"> 
+  <b style="color: #096B68; font-family:'Rubik Mono One', sans-serif;">Initial Tableau</b> 
+</h5>
+<table id="initialTableau" class="table table-bordered mt-2 w-100 text-nowrap text-center hover">
+  <thead>
+    <tr class="obj">
+      <th colspan="3">C<sub>j</sub></th>`;
 
   // Add Cj values for original decision variables
   let keys = Object.keys(objFunctions);

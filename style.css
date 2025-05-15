@@ -1,151 +1,222 @@
 body {
-  background: linear-gradient(120deg, #e0eafc, #cfdef3);
-  font-family: 'Roboto', sans-serif;
-  color: #333;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
+    background: linear-gradient(90deg, #6FB2D2, #85C88A);
+    font-family: "Space Grotesk", sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-size: 1.0rem;
 }
 
 /* Header */
 h1 {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    font-family: "Rubik Mono One", monospace;
+    font-size: 50px;
+    color: #333;
+    background: linear-gradient(90deg, #6FB2D2, #85C88A);
+    padding: 20px;
+    border-radius: 80px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
 }
 
+
 .section-heading {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #4a4a4a;
-  border-bottom: 2px solid #ccc;
-  padding-bottom: 6px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    border-radius: 80px;
+    color: #333;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 6px;
 }
 
 /* Card Container */
 .card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    background: #FFFBDE;
+    backdrop-filter: blur(10px);
+    border-radius: 80px;
+    padding: 30px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    color: #333;
 }
 
 /* Inputs */
 .variable-input {
-  width: 60px;
-  min-width: 50px;
-  max-width: 70px;
-  padding: 6px 8px;
-  font-size: 14px;
-  text-align: center;
+    width: 60px;
+    min-width: 50px;
+    max-width: 70px;
+    padding: 6px 8px;
+    font-size: 14px;
+    text-align: center;
+    font-family: "Space Grotesk", monospace;
+    color: #333;
 }
 
 .variable-input,
 .constraint-group .form-control {
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  transition: 0.3s;
+    border-radius: 10px;
+    border: 2px solid #90D1CA;
+    padding: 8px 12px;
+    transition: 0.3s;
+    color: #333;
 }
 
-.variable-input:focus,
-.constraint-group .form-control:focus {
-  border-color: #8e44ad;
-  box-shadow: 0 0 5px rgba(142, 68, 173, 0.3);
-  outline: none;
-}
+    .variable-input:focus,
+    .constraint-group .form-control:focus {
+        border-color: #096B68;
+        box-shadow: 0 0 5px rgba(142, 68, 173, 0.3);
+        outline: none;
+    }
 
 /* Objective Function */
 .objective-function {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-left: 5px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-left: 5px;
+    border-radius: 80px;
+    padding: 20px;
+    background-color: #FFFBDE;
 }
 
 .max-z-label {
-  font-weight: bold;
-  margin-right: 10px;
-  color: #5a5a5a;
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: bold;
+    margin-right: 8px;
+    color: #333;
 }
 
 .plus-label {
-  width: 20px;
-  text-align: center;
-  font-weight: 500;
+    width: 20px;
+    text-align: center;
+    font-weight: 500;
 }
 
 /* Constraints */
 #constraintsContainer .constraint-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-  padding-left: 5px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    padding-left: 5px;
+}
+
+/* "Subject To" Section Heading */
+h5 {
+    border-radius: 5px !important;
+    color: #FAE3C6 !important;
+    font-weight: bold;
+}
+
+/* Tabs */
+.nav-tabs .nav-link {
+    color: #333;
+    font-weight: normal; 
+    border-radius: 5px;
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: bold; 
 }
 
 /* Buttons */
 button {
-  border-radius: 12px !important;
-  font-weight: 600;
-  padding: 10px 22px;
-  transition: 0.2s;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    border-radius: 12px !important;
+    font-weight: 600;
+    padding: 10px 22px;
+    transition: 0.2s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
 }
 
 #solveButton {
-  background: linear-gradient(to right, #6a11cb, #2575fc);
-  border: none;
-  color: #fff;
+    background: #096B68;
+    border: none;
+    color: #fff;
 }
 
-#solveButton:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
+    #solveButton:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
 
 #addConstraint {
-  background-color: #f9f9f9;
-  color: #333;
-  border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    color: #333;
+    border: 1px solid #ccc;
 }
 
-#addConstraint:hover {
-  background-color: #e2e2e2;
-}
+    #addConstraint:hover {
+        background-color: #D0DDD0;
+    }
 
 /* Scrollbar (optional) */
 .objective-function .d-flex::-webkit-scrollbar {
-  height: 6px;
+    height: 6px;
 }
+
 .objective-function .d-flex::-webkit-scrollbar-thumb {
-  background-color: #bbb;
-  border-radius: 3px;
+    background-color: #bbb;
+    border-radius: 3px;
 }
 
 /* Responsive */
 @media (max-width: 576px) {
-  .variable-input {
-    width: 60px;
-    font-size: 14px;
-  }
+    .variable-input {
+        width: 60px;
+        font-size: 14px;
+    }
 
-  .max-z-label {
-    font-size: 16px;
-  }
+    .max-z-label {
+        font-size: 16px;
+    }
 }
 
 #initialTable,
 #otherTables {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 0 auto;
+}
+
+/* Make all tables uniform in size */
+table {
+    width: 100%;
+    table-layout: fixed;
+    border: 4px solid #000; 
+    border-spacing: 0; 
+}
+
+/* Table headers (standardize header row style) */
+th {
+    padding: 10px;
+    background-color: #BBDED6;
+    color: #333;
+    text-align: center;
+    font-weight: bold;
+   border: 3px solid #000; /* Make the outer border thicker and visible */
+}
+
+/* Table cells (standardize cell style) */
+td {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #333; /* Border for table cells */
+    vertical-align: middle;
+}
+
+/* Uniform table row height */
+tr {
+    height: 40px; /* Adjust row height as needed */
+}
+
+/* Hover effect for tables */
+table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Additional styling for outer table border to make it distinguishable */
+table {
+    border: 3px solid #000; /* Outer border color and thickness */
 }
