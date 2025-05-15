@@ -522,7 +522,12 @@ function createSimplexTable(iteration){
       }
     });
 
-  
+    solution.sort((a, b) => {
+  const indexA = parseInt(a[0].substring(1));
+  const indexB = parseInt(b[0].substring(1));
+  return indexA - indexB;
+});
+
 	let xVars = getSortedKeysByPrefix(cjValuesAndVariables,'x')
 	// Extract variable values from `solution` into a map
 	const varMap = {};
@@ -541,35 +546,35 @@ function createSimplexTable(iteration){
     zTerms.push(`${coeff}(${value})`);
   }
     //Pa FIX na lang ako guys ng formatting, nasa loob ng solutions[] array lang 'yung mga sagot thanks!
-    document.getElementById("solutions").innerHTML = "";
+      const solutionWrapper = document.createElement("div");
+      solutionWrapper.className = "text-center"; // Apply alignment once
 
-    solution.forEach(([varShow, varValue]) => {
-    const formattedVarShow = varShow.replace(/x(\d+)/, 'x<sub>$1</sub>');
+      // Render each variable solution
+      solution.forEach(([varShow, varValue]) => {
+      const formattedVarShow = varShow.replace(/x(\d+)/, 'x<sub>$1</sub>');
+      
+      const pElement = document.createElement("p");
+      pElement.className = "fw-bold mb-2";
+      pElement.style.fontSize = "2rem";
+      pElement.innerHTML = `${formattedVarShow} = ${varValue}`;
 
-    // Create a wrapper div
-    const wrapperDiv = document.createElement("div");
-    wrapperDiv.className = "text-center mb-4"; // center align and spacing between sets
-
-    // Create variable value paragraph
-    const pElement = document.createElement("p");
-    pElement.className = "fw-bold";
-    pElement.style.fontSize = "2rem";
-    pElement.innerHTML = `${formattedVarShow} = ${varValue}`;
-
-    // Create Z expression paragraph
-    const zExpression = `Z = ${zTerms.join(" + ")} = ${Z}`;
-    const zElement = document.createElement("p");
-    zElement.className = "fw-bold mt-2";
-    zElement.style.fontSize = "2rem";
-    zElement.innerHTML = zExpression;
-
-    // Append both to wrapper
-    wrapperDiv.appendChild(pElement);
-    wrapperDiv.appendChild(zElement);
-
-    // Append wrapper to main solutions container
-    document.getElementById("solutions").appendChild(wrapperDiv);
+      solutionWrapper.appendChild(pElement);
     });
+
+    // Render Z expression only once
+const zExpression = `Z = ${zTerms.join(" + ")} = ${Z.toFixed(2)}`;
+
+const zElement = document.createElement("p");
+zElement.className = "fw-bold mt-4";
+zElement.style.fontSize = "2rem";
+zElement.innerHTML = zExpression;
+
+solutionWrapper.appendChild(zElement);
+
+// Finally, clear and append everything once
+const solutionsContainer = document.getElementById("solutions");
+solutionsContainer.innerHTML = "";
+solutionsContainer.appendChild(solutionWrapper);
 
     return false;
   }
