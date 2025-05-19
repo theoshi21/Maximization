@@ -2,6 +2,15 @@ var constraintCount = 0;
 var count = 2; // Default number of variables
   
 $(document).ready(function() {
+
+  // Add the input restriction for only numbers
+    $(document).on('input', 'input[type="number"], input[id^="val"]', function(event) {
+        // Allow only numbers and prevent special characters or letters
+        let inputValue = $(this).val();
+        // Replace non-numeric characters and reapply the value
+        $(this).val(inputValue.replace(/[^0-9.]/g, ''));
+    });
+    
     const inputContainer = $('.objective-function .d-flex');
     const allInputWrappers = inputContainer.find('div:not(.plus-label)');
     const allPlusLabels = inputContainer.find('.plus-label');
@@ -173,16 +182,16 @@ function reset() {
 
   //SOLVE BUTTON CLICKCKED
 $('#solveButton').click(function() {
-  reset();
+
+  // Disable ko muna para iwas spam though ireredirect naman pero yk just in case
   $('#solveButton').prop('disabled', true);
 
+  // Reset 
+  reset();
+
+  // Get the values of the objective function inputs
   for (let i = 1; i <= count; i++) {
       objFunctions[`x${i}`] = document.getElementById(`x${i}`).value || "0";
-  }
-
-  // Checking the inside of the array
-  for (x in objFunctions){
-      console.log(`VALUES: ${x} is ${objFunctions[x]}`);
   }
 
   // Process constraints
@@ -503,7 +512,8 @@ function createSimplexTable(iteration){
   else {
     document.getElementById("found").innerHTML += `<h1 class="text-center mt-1"> Solution is found </h1>`
 
-    let solution = [];
+   let solution = [];
+    const foundVars = new Map(); // Store found variable values
     const rows = document.querySelectorAll(`#iteration${iteration} tr`);
 
     rows.forEach(row => {
@@ -517,16 +527,22 @@ function createSimplexTable(iteration){
         console.log(varShowText, varValueText);
 
         if (varShowText.startsWith("x")) {
-          solution.push([varShowText, varValueText]);
+          foundVars.set(varShowText, varValueText);
         }
       }
     });
 
-    solution.sort((a, b) => {
-  const indexA = parseInt(a[0].substring(1));
-  const indexB = parseInt(b[0].substring(1));
-  return indexA - indexB;
-});
+    for (let i = 1; i <= count; i++) {
+      const varName = `x${i}`;
+      const value = foundVars.has(varName) ? foundVars.get(varName) : "0";
+      solution.push([varName, value]);
+    }
+
+      solution.sort((a, b) => {
+      const indexA = parseInt(a[0].substring(1));
+      const indexB = parseInt(b[0].substring(1));
+      return indexA - indexB;
+    });
 
 	let xVars = getSortedKeysByPrefix(cjValuesAndVariables,'x')
 	// Extract variable values from `solution` into a map
