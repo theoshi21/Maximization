@@ -5,12 +5,11 @@ $(document).ready(function() {
 
   // Add the input restriction for only numbers
     // Prevent unwanted characters (e, E, +, -) from being typed
-    $(document).on('keydown', 'input[type="number"], input[id^="val"]', function (e) {
+    $(document).on('keydown', 'input[type="number"]', function (e) {
         const allowedKeys = [
             'Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete',  // navigation keys
             '0','1','2','3','4','5','6','7','8','9','.', // number keys and decimal
         ];
-
 
         // If the key is not allowed, prevent it
         if (!allowedKeys.includes(e.key)) {
@@ -113,43 +112,49 @@ $(document).ready(function() {
   
 //Add Constraint Button
 $('#addConstraint').click(function () {
-  if(constraintCount == 0) solveButton.style.display = "inline-block"
+  if (constraintCount === 0) solveButton.style.display = "inline-block";
   constraintCount++;
   updateNonNegativityConstraint(count);
 
-
-  // Unique ID for the constraint block
   const constraintId = `constraint-${constraintCount}`;
+  let constraintHTML = `<div id="${constraintId}" class="constraint-row d-flex align-items-center mb-2 flex-wrap justify-content-center">`;
 
-  let constraintHTML = `<div id="${constraintId}" class="d-flex align-items-center mb-2 flex-wrap justify-content-center">`;
-
+  // Build input fields with IDs
   for (let i = 1; i <= count; i++) {
-      constraintHTML += `
-          <div><input id="r${constraintCount}x${i}" type="number" class="form-control variable-input m-1 w-auto" placeholder="x${i}"></div>
-          <span class="ml-1">x<sub>${i}</sub></span>
-      `;
-      if (i !== count) {
-          constraintHTML += `<div class="plus-label font-weight-bold m-1">+</div>`;
-      }
+    constraintHTML += `
+      <div>
+        <input id="r${constraintCount}x${i}" type="text" data-allow-negative="true" inputmode="decimal" class="form-control variable-input m-1 w-auto" placeholder="x${i}">
+      </div>
+      <span class="ml-1">x<sub>${i}</sub></span>
+    `;
+    if (i !== count) {
+      constraintHTML += `<div class="plus-label font-weight-bold m-1">+</div>`;
+    }
   }
 
   constraintHTML += `
-      <div class="dropdown m-2">
-          <button id="dropdownCompare${constraintCount}" class="btn btn-secondary dropdown-toggle" style="background-color: #129990;" type="button" data-toggle="dropdown">&lt;=</button>
-          <div class="dropdown-menu">
-              <a class="dropdown-item compare" href="#">&lt;=</a>
-              <a class="dropdown-item compare" href="#">&gt;=</a>
-              <a class="dropdown-item compare" href="#">=</a>
-          </div>
+    <div class="dropdown m-2">
+      <button id="dropdownCompare${constraintCount}" class="compare-dropdown btn btn-secondary dropdown-toggle" style="background-color: #129990;" type="button" data-toggle="dropdown">&lt;=</button>
+      <div class="dropdown-menu">
+        <a class="dropdown-item compare" href="#">&lt;=</a>
+        <a class="dropdown-item compare" href="#">&gt;=</a>
+        <a class="dropdown-item compare" href="#">=</a>
       </div>
-      <div><input type="text" id="val${constraintCount}" class="form-control variable-input m-1" placeholder="val"></div>
-
-      <!-- Delete Button beside constraint -->
-      <button class="btn btn-danger ml-2 delete-constraint" data-id="${constraintId}">X</button>
+    </div>
+    <div><input type="text" id="val${constraintCount}" class="rhs-value form-control variable-input m-1" placeholder="val"></div>
+    <button class="btn btn-danger ml-2 delete-constraint" data-id="${constraintId}">X</button>
   </div>`;
 
   $('#constraintsContainer').append(constraintHTML);
+});
 
+//For Validation of the Constraints
+$(document).on('input', '.variable-input', function() {
+  const value = $(this).val();
+  const valid = /^-?\d*\.?\d*(\/\d+)?$/.test(value);
+  if (!valid && value !== "") {
+    $(this).val(value.slice(0, -1));
+  }
 });
 
 // Delete constraint when delete button is clicked
@@ -254,16 +259,34 @@ $('#solveButton').click(function() {
   }
 
   // Process constraints
-  for (let i = 1; i <= constraintCount; i++) {
-      for (let j = 1; j <= count; j++) {
-          if (!constraints[`r${i}`]) {
-              constraints[`r${i}`] = [];
-          }
-          constraints[`r${i}`].push(document.getElementById(`r${i}x${j}`).value);
-      }
-      values[`r${i}`] = document.getElementById(`val${i}`).value;
-      constraints[`r${i}`].push(document.getElementById(`dropdownCompare${i}`).textContent);
-  }
+  constraints = {};
+  values = {};
+
+  $('#constraintsContainer .constraint-row').each(function(index) {
+    const $constraintDiv = $(this);
+
+    // Get constraint variable inputs (assumes inputs have class variable-input)
+    const rowConstraints = [];
+    $constraintDiv.find('input.variable-input[type="text"]').each(function() {
+      let val = $(this).val() || "0";
+      rowConstraints.push(val);
+    });
+
+    // Get dropdown sign inside this constraint div (button with class compare-dropdown)
+    let comparisonSign = $constraintDiv.find('button.compare-dropdown').text().trim();
+
+    // Get the RHS value input (last input in this div)
+    // Or better, if you gave the RHS input a specific class like 'rhs-value', find by that
+    let rhsValue = $constraintDiv.find('input.rhs-value').val() || "0";
+
+    // If you don’t have that class yet on RHS input, you can find the last input, e.g.:
+    // let rhsValue = $constraintDiv.find('input.variable-input[type="text"]').last().val() || "0";
+
+    // Store values indexed by constraint
+    constraints[`r${index + 1}`] = rowConstraints;
+    constraints[`r${index + 1}`].push(comparisonSign);
+    values[`r${index + 1}`] = rhsValue;
+  });
 
   // Update the standard form section
   var standardForm = JSON.parse(JSON.stringify(constraints));
@@ -329,6 +352,7 @@ $('#solveButton').click(function() {
               artificialCounter++;
           }
 
+          console.log(`val =`, val);
           // Use to add labels to the standard form
           let expressionParts = [];
           for (let j = 0; j < count; j++) {
@@ -337,7 +361,7 @@ $('#solveButton').click(function() {
           }
 
           // Add slack, surplus, or arbitrary variables (e.g., S1, -S2, A1)
-          for (let j = count; j < val.length; j++) {
+          for (let j = count+1; j < val.length; j++) {
               expressionParts.push(`${val[j]}`);
           }
 
@@ -347,23 +371,23 @@ $('#solveButton').click(function() {
   }
   document.getElementById("standardForm").innerHTML = standardHTML;
 
-  initialTable();
-  let iteration = 1;
-  let continueLoop = createSimplexTable(iteration);
+  if(initialTable()){
+    let iteration = 1;
+    let continueLoop = createSimplexTable(iteration);
 
-  // Loop until solution is found
-  while (continueLoop && iteration < 20) {
-      iteration++;
-      continueLoop = createSimplexTable(iteration);
+    // Loop until solution is found
+    while (continueLoop && iteration < 20) {
+        iteration++;
+        continueLoop = createSimplexTable(iteration);
+    }
+
+    if (iteration === 20) {
+        document.getElementById("found").innerHTML = 
+        `<div class="alert alert-danger text-center" role="alert">
+            Error! The solution may not be feasible or is too large.
+        </div>`;
+    }
   }
-
-  if (iteration === 20) {
-      document.getElementById("found").innerHTML = 
-      `<div class="alert alert-danger text-center" role="alert">
-          Error! The solution may not be feasible or is too large.
-      </div>`;
-  }
-
   $('#solveButton').prop('disabled', false);
 
   // **Redirect to Solution Tab** (this is where you insert the change)
@@ -696,13 +720,13 @@ function initialTable() {
   let SandA = 0;
 
   // For computing Cj Column
-  for (let i = 1; i <= constraintCount; i++) {
-    let sign = document.getElementById(`dropdownCompare${i}`).textContent.trim();
+  $('#constraintsContainer .constraint-row').each(function () {
+    // Get the comparison sign from the dropdown button inside this constraint
+    const sign = $(this).find('button.compare-dropdown').text().trim();
 
-    // Add 1 to the column if signs are <= or =, add 2 if sign is >=
+    // Add to cjCol depending on the sign
     cjCol += (sign === "<=" || sign === "=") ? 1 : (sign === ">=" ? 2 : 0);
-    console.log(`CjCol: ${cjCol}`);
-  }
+  });
 
   // Start HTML structure
     let initialHTML = `<h5 class="text-centered mt-2"> 
@@ -722,8 +746,9 @@ function initialTable() {
   }
 
   // Add slack and artificial variable Cj values
-  for (let i = 1; i <= constraintCount; i++) {
-    let sign = document.getElementById(`dropdownCompare${i}`).textContent.trim();
+
+  $('#constraintsContainer .constraint-row').each(function () {
+    const sign = $(this).find('button.compare-dropdown').text().trim();
 
     if (sign === "<=") {
       slackCount.push("0");
@@ -733,11 +758,12 @@ function initialTable() {
       slackCount.push("0");
       aCount.push("-M");
     }
-  }
+  });
 
   headerCount = count+cjCol;
 
     cjValues = [...cjObjValues, ...slackCount, ...aCount];
+    console.log(`cjvalues: ${cjValues}`);
     for (let i = 0; i < cjValues.length; i++) {
       initialHTML += `<td class="c${i+1}">${cjValues[i]}</td>`;
     } 
@@ -811,6 +837,7 @@ function initialTable() {
     // Add original decision variable coefficients
     let colIndex = 1; // Start from c1
 
+    console.log(`constraints key: ${constraints[key]}`)
     for (let j = 0; j < count; j++) {
       initialHTML += `<td class="c${colIndex}"> ${constraints[key][j] || 0} </td>`;
       colIndex++;
@@ -821,28 +848,30 @@ function initialTable() {
     // Add added variables with class names
     const cjKeys = Object.keys(cjValuesAndVariables); // e.g., ["x1", "x2", "s1", "a1", ...]
 
-    for (let keyName of cjKeys) {
-      if (keyName.startsWith("x")) continue; // already added earlier
+    console.log(`Row ${key} addedVars:`, addedVars[key]);
+     for (let keyName of cjKeys) {
+      if (keyName.startsWith("x")) continue; // skip original decision variables
 
-      const index = keyName.slice(1); // "1" from "s1", "a1", etc.
+      const index = keyName.slice(1); // "1" from "s1", "a1"
       const htmlLabel = keyName.startsWith("s") ? `S<sub>${index}</sub>` : `A<sub>${index}</sub>`;
-      const negativeLabel = `-S<sub>${index}</sub>`;
+      const negativeLabel = `-${htmlLabel}`;
 
-      // Check if the current row (e.g., addedVars[r1]) contains either form
       let cellValue = "0";
-      if (addedVars[key].includes(htmlLabel)) {
+
+      if (addedVars[key]?.includes(htmlLabel)) {
         cellValue = "1";
-      } else if (addedVars[key].includes(negativeLabel)) {
+      } else if (addedVars[key]?.includes(negativeLabel)) {
         cellValue = "-1";
       }
 
+      // Always output a cell for this variable, even if value is 0
       initialHTML += `<td class="c${colIndex}">${cellValue}</td>`;
       colIndex++;
       columns[i - 1].push(cellValue);
     }
     console.log(JSON.stringify(columns, null, 2));
 
-    initialHTML += `<td id=initialqi${i}></td>` //I WANT TO ADD THE QI VALUES HERE!
+    initialHTML += `<td id=initialqi${i}></td>` //Adding the Qi values later on.
     initialHTML += `</tr>`;
 
   }
@@ -875,9 +904,11 @@ function initialTable() {
 
   pivotColumn = getIndexOfMostNegativeZjCj(ZjMinusCj)
   console.log(`Pivot Column in Initial: ${pivotColumn}`);
-  highlightPivotColumn(pivotColumn, 'initialTableau')
 
-  var qi = [];
+  if(pivotColumn !== null){
+     highlightPivotColumn(pivotColumn, 'initialTableau')
+    var qi = [];
+    let hasValidPivot = false;
   for (let i = 1; i <= constraintCount; i++) {
     let key = `r${i}`;
     let cell = document.querySelector(`#initialTableau tr.row${i} td.c${pivotColumn + 1}`);
@@ -895,6 +926,7 @@ function initialTable() {
         quotient = "—"; // Invalid division or negative result
       } else {
         quotient = (values[key] / val).toFixed(2);
+        hasValidPivot = true;
       }
       console.log(`quotient: ${quotient}`)
 
@@ -905,6 +937,16 @@ function initialTable() {
       else {
         document.getElementById(`initialqi${i}`).textContent = `${values[key]} / ${val}`
       }
+    }
+
+    const allInvalid = qi.every(q => q === "—" || parseFloat(q) < 0);
+    if (allInvalid) {
+      document.getElementById("found").innerHTML = 
+      `<div class="alert alert-danger text-center" role="alert">
+          Error! The solution is unbounded!
+      </div>`;
+       $('#solution-tab').tab('show');  // This line switches to the "Solution" tab
+      return false;
   }
   console.log(`qi: ${qi}`)
 
@@ -943,6 +985,8 @@ function initialTable() {
     console.log(`Column after deletion: ${JSON.stringify(columns, null, 2)}`);
 
     console.log(JSON.stringify(cjValuesAndVariables, null, 2));
+}
+return true;
 }
 
 function countVariablePrefixes(obj, prefix = null) {
