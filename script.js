@@ -4,11 +4,23 @@ var count = 2; // Default number of variables
 $(document).ready(function() {
 
   // Add the input restriction for only numbers
-    $(document).on('input', 'input[type="number"], input[id^="val"]', function(event) {
-        // Allow only numbers and prevent special characters or letters
-        let inputValue = $(this).val();
-        // Replace non-numeric characters and reapply the value
-        $(this).val(inputValue.replace(/[^0-9.]/g, ''));
+    // Prevent unwanted characters (e, E, +, -) from being typed
+    $(document).on('keydown', 'input[type="number"], input[id^="val"]', function (e) {
+        const allowedKeys = [
+            'Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete',  // navigation keys
+            '0','1','2','3','4','5','6','7','8','9','.', // number keys and decimal
+        ];
+
+
+        // If the key is not allowed, prevent it
+        if (!allowedKeys.includes(e.key)) {
+            e.preventDefault();
+        }
+
+        // Block multiple decimal points
+        if (e.key === '.' && $(this).val().includes('.')) {
+            e.preventDefault();
+        }
     });
     
     const inputContainer = $('.objective-function .d-flex');
@@ -21,6 +33,13 @@ $(document).ready(function() {
 
     $('#numVariablesInput').on('input', function () {
     let numVariables = parseInt($(this).val());
+
+       if (numVariables <= 1) {
+        // Prevent input by clearing the field or showing a message
+        $(this).val(2);
+        alert('Value less than 1 is not allowed. Please enter a value greater than 1.');
+        return;
+    }
 
     hideAllInputs();
     showInputs(numVariables);
@@ -38,25 +57,39 @@ $(document).ready(function() {
 });
 
     function generateObjectiveInputs(numVariables) {
-      const inputContainer = $('#objectiveInputs');
-      inputContainer.empty(); // Clear previous inputs
+  const inputContainer = $('#objectiveInputs');
+  inputContainer.empty(); // Clear previous inputs
 
-      for (let i = 1; i <= numVariables; i++) {
-        const inputField = `
-          <div class="d-flex align-items-center m-1">
-            <input id="x${i}" type="number" class="form-control variable-input w-auto">
-            <span class="ml-1">x<sub>${i}</sub></span>
-          </div>
-        `;
+  for (let i = 1; i <= numVariables; i++) {
+    const inputId = `x${i}`;
 
-        inputContainer.append(inputField);
+    const inputField = `
+      <div class="d-flex align-items-center m-1">
+        <input id="${inputId}" type="text" class="form-control variable-input w-auto" />
+        <span class="ml-1">x<sub>${i}</sub></span>
+      </div>
+    `;
 
-        // Add "+" sign except after the last variable
-        if (i !== numVariables) {
-          inputContainer.append(`<div class="plus-label font-weight-bold m-1">+</div>`);
-        }
-      }
+    inputContainer.append(inputField);
+
+    // Add "+" sign except after the last variable
+    if (i !== numVariables) {
+      inputContainer.append(`<div class="plus-label font-weight-bold m-1">+</div>`);
     }
+
+    // Add validation event after the input is appended
+    setTimeout(() => {
+      $(`#${inputId}`).on('input', function () {
+        const value = $(this).val();
+        const valid = /^-?\d*\.?\d*(\/\d+)?$/.test(value);
+        if (!valid && value !== "") {
+          $(this).val(value.slice(0, -1)); // remove last char
+        }
+      });
+    }, 0);
+  }
+}
+
 
     function hideAllInputs() {
         allInputWrappers.each(function() { $(this).hide(); });
@@ -77,41 +110,66 @@ $(document).ready(function() {
         }
     }
 
+  
 //Add Constraint Button
-    $('#addConstraint').click(function() {
-        constraintCount++;
-        updateNonNegativityConstraint(count);
+$('#addConstraint').click(function () {
+  if(constraintCount == 0) solveButton.style.display = "inline-block"
+  constraintCount++;
+  updateNonNegativityConstraint(count);
 
-        let constraintHTML = `<div class="d-flex align-items-center mb-2 flex-wrap justify-content-center">`;
-        for (let i = 1; i <= count; i++) {
-            constraintHTML += `
-                <div><input id="r${constraintCount}x${i}" type="number" class="form-control variable-input m-1 w-auto" placeholder="x${i}"></div>
-                <span class="ml-1">x<sub>${i}</sub></span>
-            `;
-            if (i !== count) {
-                constraintHTML += `<div class="plus-label font-weight-bold m-1">+</div>`;
-            }
-        }
 
-        constraintHTML += `
-            <div class="dropdown m-2">
-                <button id="dropdownCompare${constraintCount}" class="btn btn-secondary dropdown-toggle" style="background-color: #129990; type="button" data-toggle="dropdown"> &lt;= </button>
-                <div class="dropdown-menu">
-                    <a class="dropdown-item compare" href="#">&lt;=</a>
-                    <a class="dropdown-item compare" href="#">&gt;=</a>
-                    <a class="dropdown-item compare" href="#">=</a>
-                </div>
-            </div>
-            <div><input type="text" id="val${constraintCount}" class="form-control variable-input m-1" placeholder="value"></div>
-        </div>`;
+  // Unique ID for the constraint block
+  const constraintId = `constraint-${constraintCount}`;
 
-        $('#constraintsContainer').append(constraintHTML);
-    });
+  let constraintHTML = `<div id="${constraintId}" class="d-flex align-items-center mb-2 flex-wrap justify-content-center">`;
 
-      $(document).on('click', '.compare', function() {
-      const clickedDropdown = $(this).closest('.dropdown').find('.dropdown-toggle');
-      clickedDropdown.text($(this).text());
-    });
+  for (let i = 1; i <= count; i++) {
+      constraintHTML += `
+          <div><input id="r${constraintCount}x${i}" type="number" class="form-control variable-input m-1 w-auto" placeholder="x${i}"></div>
+          <span class="ml-1">x<sub>${i}</sub></span>
+      `;
+      if (i !== count) {
+          constraintHTML += `<div class="plus-label font-weight-bold m-1">+</div>`;
+      }
+  }
+
+  constraintHTML += `
+      <div class="dropdown m-2">
+          <button id="dropdownCompare${constraintCount}" class="btn btn-secondary dropdown-toggle" style="background-color: #129990;" type="button" data-toggle="dropdown">&lt;=</button>
+          <div class="dropdown-menu">
+              <a class="dropdown-item compare" href="#">&lt;=</a>
+              <a class="dropdown-item compare" href="#">&gt;=</a>
+              <a class="dropdown-item compare" href="#">=</a>
+          </div>
+      </div>
+      <div><input type="text" id="val${constraintCount}" class="form-control variable-input m-1" placeholder="val"></div>
+
+      <!-- Delete Button beside constraint -->
+      <button class="btn btn-danger ml-2 delete-constraint" data-id="${constraintId}">X</button>
+  </div>`;
+
+  $('#constraintsContainer').append(constraintHTML);
+
+});
+
+// Delete constraint when delete button is clicked
+$(document).on('click', '.delete-constraint', function () {
+  constraintCount--;
+  if(constraintCount == 0) {
+    solveButton.style.display = "none"
+    $('#nonNegativityConstraint').empty();
+  }
+  const constraintId = $(this).data('id');
+  $('#' + constraintId).remove();
+});
+
+$(document).on('click', '.dropdown-item.compare', function (event) {
+  event.preventDefault();
+  const selectedValue = $(this).text();
+  const button = $(this).closest('.dropdown').find('button.dropdown-toggle');
+  button.text(selectedValue);
+});
+
 
   function updateNonNegativityConstraint(varCount) {
     const constraintDiv = document.getElementById("nonNegativityConstraint");
@@ -155,6 +213,7 @@ function reset() {
   aCount = [];
   exitVariable;
   exitValue;
+  calcHTML = ``
 }
 
 
@@ -179,11 +238,11 @@ function reset() {
   var exitVariable;
   var exitValue;
   var headerCount = 0;
+  var calcHTML = ``
 
   //SOLVE BUTTON CLICKCKED
 $('#solveButton').click(function() {
 
-  // Disable ko muna para iwas spam though ireredirect naman pero yk just in case
   $('#solveButton').prop('disabled', true);
 
   // Reset 
@@ -231,6 +290,9 @@ $('#solveButton').click(function() {
 
   var standardForm = JSON.parse(JSON.stringify(constraints)); // deep copy
 
+  let slackCounter = 1;
+  let artificialCounter = 1;
+
   for (let i = 1; i <= constraintCount; i++) {
       let key = `r${i}`;
       addedVars[key] = [];
@@ -247,20 +309,24 @@ $('#solveButton').click(function() {
 
           // Apply transformations and track added vars
           if (val[val.length - 1] === "1" || val[val.length - 1] === 1) {
-              val[val.length - 1] = `S<sub>${i}</sub>`;
+              val[val.length - 1] = `S<sub>${slackCounter}</sub>`;
               addedVars[key].push(val[val.length - 1]);
+              slackCounter++;
           } else if (
               (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') &&
               (val[val.length - 2] === -1 || val[val.length - 2] === "-1") &&
               val.length > count + 1
           ) {
-              val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
-              val[val.length - 2] = `-S<sub>${i}</sub>`;
+              val[val.length - 1] = `A<sub>${artificialCounter}</sub>`;
+              val[val.length - 2] = `-S<sub>${slackCounter}</sub>`;
               addedVars[key].push(val[val.length - 2]);
               addedVars[key].push(val[val.length - 1]);
+              slackCounter++;
+              artificialCounter++;
           } else if (val[val.length - 1] === "-M" || val[val.length - 1] === -'M') {
-              val[val.length - 1] = `A<sub>${arbitraryCounter++}</sub>`;
+              val[val.length - 1] = `A<sub>${artificialCounter}</sub>`;
               addedVars[key].push(val[val.length - 1]);
+              artificialCounter++;
           }
 
           // Use to add labels to the standard form
@@ -366,6 +432,8 @@ function createSimplexTable(iteration){
 
   tableHTML += `</tr>`;
 
+  calcHTML += `<h5 class="mb-1 mt-3"> Iteration ${iteration} </h5>`
+
   sortCjValuesAndVariables(cjValuesAndVariables);
   console.log(cjValuesAndVariables);
 
@@ -379,28 +447,36 @@ function createSimplexTable(iteration){
   console.log(`pivotRow: ${pivotRow}, pivotColumn: ${pivotColumn}`)
   pivotElement = columns[pivotRow][pivotColumn+1]
   console.log(`Pivot Element: ${pivotElement}`);
+
+  calcHTML += `<p class="font-weight-bold mb-0"> R${pivotRow+1}<sub>new</sub> = R${pivotRow+1}<sub>old</sub> ÷ ${pivotElement} </p>`;
   let newRow = normalize(columns[pivotRow], pivotElement)
   columns[pivotRow] = newRow;
 
-  //Normalizing the other row using the normalized pivot row
+  // Normalizing the other rows using the normalized pivot row
   for (let i = 0; i < constraintCount; i++) {
-    let key = `r${i+1}`
-    if (i !== pivotRow) {
-      let updatedRow = [];
-      let multiplier = columns[i][pivotColumn+1]
-      console.log(`R${i+1} multiplier:${multiplier}`)
-      for(let j = 0; j < columns[i].length; j++){
-        let val = columns[i][j] - (multiplier*columns[pivotRow][j]);
-        console.log(`${columns[i][j]} - (${multiplier}*${columns[pivotRow][j]}) = ${val};`)
-        updatedRow.push(val === 0 ? "0" : val.toFixed(2));
+      let key = `r${i + 1}`;
+      if (i !== pivotRow) {
+        let updatedRow = [];
+        let multiplier = columns[i][pivotColumn + 1];
+        calcHTML += `<p class="font-weight-bold mb-0 mt-2">R${i + 1}<sub>new</sub> = R${i + 1}<sub>old</sub> - (${multiplier})(R${pivotRow + 1}<sub>new</sub>)</p>`;
+
+        for (let j = 0; j < columns[i].length; j++) {
+          let val = columns[i][j] - (multiplier * columns[pivotRow][j]);
+
+          // Format for display: integer if no decimals, else to 2 decimals
+          const displayVal = Number.isInteger(val) ? val.toString() : val.toFixed(2);
+          calcHTML += `(${columns[i][j]}) - (${multiplier})(${columns[pivotRow][j]}) = ${displayVal}<br>`;
+
+          updatedRow.push(Number(val.toFixed(2))); // Store actual numeric value, not the string
+        }
+
+        columns[i] = updatedRow;
       }
-      console.log(`Row ${i+1}: ${updatedRow}`)
-      columns[i] = updatedRow;
-      console.log(columns[i])
+
+      // Format values[key] like displayVal
+      const rawVal = columns[i][0];
+      values[key] = Number.isInteger(rawVal) ? rawVal.toString() : rawVal.toFixed(2);
     }
-    values[key] = columns[i][0]
-  }
-  console.log(values)
 
 
   for(let i = 1; i <= constraintCount; i++){
@@ -415,6 +491,7 @@ function createSimplexTable(iteration){
   //ZJ Row
   tableHTML += `<tr> <th colspan="3">Z<sub>j</sub> </th>`
 
+  calcHTML += `<p class="font-weight-bold mb-0 mt-2"> Z<sub>j</sub></p>`;
   computedZj = computeZj(Ci,columns)
   console.log(`computedZj: ${cjValues}`)
   for(let i = 0; i < columns[0].length-1; i++){
@@ -433,8 +510,10 @@ function createSimplexTable(iteration){
      cjValues.push(value)
   }
 
-
+  calcHTML += `<p class="font-weight-bold mb-0 mt-2"> Z<sub>j</sub> - C<sub>j</sub> </p>`;
   ZjMinusCj = computeZjMinusCj(computedZj, cjValues)
+  document.getElementById("calculationsContent").innerHTML = calcHTML;
+
   console.log(`ZjMinusCj: ${ZjMinusCj}`)
   for (let i = 0; i < ZjMinusCj.length; i++) {
     tableHTML += `<td class="c${i + 1}">${ZjMinusCj[i]}</td>`;
@@ -448,6 +527,7 @@ function createSimplexTable(iteration){
   if(pivotColumn !== null){
     highlightPivotColumn(pivotColumn, `iteration${iteration}`)
     var qi = [];
+    let hasValidPivot = false;
     for (let i = 1; i <= constraintCount; i++) {
       let key = `r${i}`;
       let cell = document.querySelector(`#iteration${iteration} tr.row${i} td.c${pivotColumn + 1}`);
@@ -460,27 +540,37 @@ function createSimplexTable(iteration){
 
       let quotient;
       if (val === 0 || isNaN(val)) {
-        quotient = "—"; // Invalid division or negative result
+        quotient = "—";
+        document.getElementById(`i${iteration}qi${i}`).textContent = `—`;
       } else {
         quotient = (values[key] / val).toFixed(2);
+        document.getElementById(`i${iteration}qi${i}`).textContent = `${values[key]} / ${val}`;
+        hasValidPivot = true;
       }
-      console.log(`quotient: ${quotient}`)
 
       qi.push(quotient);
-      if(quotient === "—" || quotient < 0){
+      if (quotient === "—" || quotient < 0) {
         document.getElementById(`i${iteration}qi${i}`).textContent = `—`
-      }
-      else {
-		 
+      } else {
         document.getElementById(`i${iteration}qi${i}`).textContent = `${values[key]} / ${val}`
       }
     }
 
+    const allInvalid = qi.every(q => q === "—" || parseFloat(q) < 0);
+    if (allInvalid) {
+      document.getElementById("found").innerHTML = 
+      `<div class="alert alert-danger text-center" role="alert">
+          Error! The solution is unbounded!
+      </div>`;
+      return false;
+    }
 
     pivotRow = findLowestPositiveWithIndex(qi)
     console.log(`pivotColumn: ${pivotColumn}`)
     console.log(`Pivot row: ${pivotRow}`)
     highlightPivotRow(pivotRow, `iteration${iteration}`)
+
+    highlightPivotElement(pivotRow, pivotColumn, `iteration${iteration}`)
 
     inVariable = document.querySelector(`tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
     inVal = document.querySelector(`tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
@@ -503,16 +593,20 @@ function createSimplexTable(iteration){
         removeColumn(key)
         delete cjValuesAndVariables[key];
       }
-    console.log(`Column after deletion: ${JSON.stringify(columns, null, 2)}`);
-
-    console.log(JSON.stringify(cjValuesAndVariables, null, 2));
-
     return true;
   }
-  else {
+
+    if(checkInfeasibility(iteration)){
+      document.getElementById("found").innerHTML = 
+      `<div class="alert alert-danger text-center" role="alert">
+          Error! The solution may not be feasible because the sum of all arbitrary variables are greater than 0.
+      </div>`;
+      return false;
+    }
+    else {
     document.getElementById("found").innerHTML += `<h1 class="text-center mt-1"> Solution is found </h1>`
 
-   let solution = [];
+    let solution = [];
     const foundVars = new Map(); // Store found variable values
     const rows = document.querySelectorAll(`#iteration${iteration} tr`);
 
@@ -544,14 +638,14 @@ function createSimplexTable(iteration){
       return indexA - indexB;
     });
 
-	let xVars = getSortedKeysByPrefix(cjValuesAndVariables,'x')
-	// Extract variable values from `solution` into a map
-	const varMap = {};
-	solution.forEach(([varName, varValue]) => {
-	  varMap[varName] = parseFloat(varValue);
-	});
-		let Z = 0;
-		let zTerms = [];
+  let xVars = getSortedKeysByPrefix(cjValuesAndVariables,'x')
+  // Extract variable values from `solution` into a map
+  const varMap = {};
+  solution.forEach(([varName, varValue]) => {
+    varMap[varName] = parseFloat(varValue);
+  });
+    let Z = 0;
+    let zTerms = [];
 
   for(const keys in xVars){
     const varName = xVars[keys]
@@ -561,7 +655,6 @@ function createSimplexTable(iteration){
     Z += coeff * value;
     zTerms.push(`${coeff}(${value})`);
   }
-    //Pa FIX na lang ako guys ng formatting, nasa loob ng solutions[] array lang 'yung mga sagot thanks!
       const solutionWrapper = document.createElement("div");
       solutionWrapper.className = "text-center"; // Apply alignment once
 
@@ -578,23 +671,22 @@ function createSimplexTable(iteration){
     });
 
     // Render Z expression only once
-const zExpression = `Z = ${zTerms.join(" + ")} = ${Z.toFixed(2)}`;
+    const zExpression = `Z = ${zTerms.join(" + ")} = ${Z. toFixed(2)}`;
 
-const zElement = document.createElement("p");
-zElement.className = "fw-bold mt-4";
-zElement.style.fontSize = "2rem";
-zElement.innerHTML = zExpression;
+    const zElement = document.createElement("p");
+    zElement.className = "fw-bold mt-4";
+    zElement.style.fontSize = "2rem";
+    zElement.innerHTML = zExpression;
 
-solutionWrapper.appendChild(zElement);
+    solutionWrapper.appendChild(zElement);
 
-// Finally, clear and append everything once
-const solutionsContainer = document.getElementById("solutions");
-solutionsContainer.innerHTML = "";
-solutionsContainer.appendChild(solutionWrapper);
+    // Finally, clear and append everything once
+    const solutionsContainer = document.getElementById("solutions");
+    solutionsContainer.innerHTML = "";
+    solutionsContainer.appendChild(solutionWrapper);
 
     return false;
   }
-  
 }
 
 //INITIAL TABLE
@@ -755,6 +847,7 @@ function initialTable() {
 
   }
 
+  calcHTML += `<h5 class="mb-1"> Initial Tableau </h5> <p class="font-weight-bold mb-0"> Z<sub>j</sub> </p>`
   // Add Zj row
   computedZj = computeZj(Ci, columns);
   console.log(`Computed ZJ: ${computedZj}`);
@@ -767,13 +860,12 @@ function initialTable() {
   initialHTML += `<td rowspan='2'> </td> </tr>`;
 
   // Add Zj - Cj row
+  calcHTML += `<p class="font-weight-bold mb-0"> Z<sub>j</sub> - C<sub>j</sub> </p>`;
   ZjMinusCj = computeZjMinusCj(computedZj, cjValues);
-
-  // Add Zj - Cj row
   initialHTML += `<tr><th colspan="3">Z<sub>j</sub> - C<sub>j</sub></th>`;
-
   for (let i = 0; i < ZjMinusCj.length; i++) {
     initialHTML += `<td class="c${i + 1}">${ZjMinusCj[i]}</td>`;
+
   }
 
   initialHTML += ` </tr> </thead> </table>`
@@ -821,6 +913,12 @@ function initialTable() {
   console.log(`Pivot row: ${pivotRow}`)
   highlightPivotRow(pivotRow, "initialTableau")
 
+  console.log(`Pivot Row: ${pivotRow}`);
+  console.log(`Pivot Column: ${pivotColumn}`);
+
+  //Changing pivot element color
+  highlightPivotElement(pivotRow, pivotColumn, `initialTableau`);
+
   inVariable = document.querySelector(`#initialTableau tr.headerRow th.c${pivotColumn+1}`).innerHTML.trim();
   inVal = document.querySelector(`#initialTableau tr.obj td.c${pivotColumn+1}`).innerHTML.trim();
   console.log(`In Variable: ${inVariable}`);
@@ -863,6 +961,83 @@ function countVariablePrefixes(obj, prefix = null) {
 
   return counts;
 }
+
+function checkInfeasibility(iteration) {
+  console.log(`Checking infeasibility for iteration: ${iteration}`);
+
+  const headerRow = document.querySelector(`#iteration${iteration} tr.headerRow`);
+  if (!headerRow) {
+    console.warn("Header row not found.");
+    return false;
+  }
+
+  // Find all indices of artificial variables (e.g., A<sub>1</sub>, A<sub>2</sub>, etc.)
+  const artificialColIndices = [];
+  const headerCells = headerRow.querySelectorAll('th');
+  headerCells.forEach((cell, i) => {
+    if (/A<sub>\d+<\/sub>/.test(cell.innerHTML)) {
+      artificialColIndices.push(i);
+      console.log(`Found artificial variable column: ${cell.innerHTML} at index: ${i}`);
+    }
+  });
+
+  if (artificialColIndices.length === 0) {
+    console.log("No artificial variables found in header.");
+    return false;
+  }
+
+  let sumArtificial = 0;
+
+  // Iterate through each constraint row
+  for (let j = 1; j <= constraintCount; j++) {
+    const row = document.querySelector(`#iteration${iteration} tr.row${j}`);
+    if (!row) {
+      console.warn(`Row row${j} not found.`);
+      continue;
+    }
+
+    const varShowCell = row.querySelector('td.varShow');
+    if (!varShowCell) {
+      console.warn(`varShow cell not found in row${j}`);
+      continue;
+    }
+
+    const varShowText = varShowCell.innerHTML.trim(); // use innerHTML to retain <sub>
+    const match = varShowText.match(/A<sub>(\d+)<\/sub>/);
+    if (match) {
+      const aIndex = match[1];
+      const key = `a${aIndex}`;
+      console.log(`Artificial variable in row${j}: ${key}`);
+
+      const cells = row.querySelectorAll('td');
+      artificialColIndices.forEach(colIdx => {
+        if (colIdx < cells.length) {
+          const cellContent = cells[colIdx].textContent.trim();
+          const value = parseFloat(cellContent);
+          if (!isNaN(value)) {
+            sumArtificial += value;
+            console.log(`Adding value from row${j}, col ${colIdx}: ${value}`);
+          } else {
+            console.warn(`Non-numeric content at row${j}, col ${colIdx}: "${cellContent}"`);
+          }
+        }
+      });
+    }
+  }
+
+  console.log(`Total sum of artificial variable values: ${sumArtificial}`);
+
+  if (sumArtificial > 0) {
+    console.log("Problem is infeasible.");
+    return true;
+  }
+
+  console.log("Problem is feasible.");
+  return false;
+}
+
+
+
 
 function getSortedKeysByPrefix(obj, prefix) {
   return Object.keys(obj)
@@ -926,12 +1101,30 @@ function computeZj(ciArray, columns) {
     }
 
     const fullExpr = exprParts.join(" + ") || "0";
-    const simplified = formatExpression(fullExpr);
+    calcHTML += `${fullExpr}`;
+    let simplified;
+
+    try {
+      const symbolic = math.simplify(fullExpr).toString();
+
+      if (/[^0-9\.\-\/\+\*\s\(\)]/.test(symbolic)) {
+        simplified = formatExpression(symbolic);
+      } else {
+        const numeric = math.evaluate(symbolic);
+        simplified = Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(2);
+      }
+    } catch {
+      simplified = "Error";
+    }
+
     zjValues.push(simplified);
+    calcHTML += ` = ${simplified}<br>`;
   }
 
   return zjValues;
 }
+
+
 
 function computeZjMinusCj(computedZj, cjValues) {
   const resultArray = [];
@@ -940,10 +1133,11 @@ function computeZjMinusCj(computedZj, cjValues) {
     const zj = computedZj[i] || "0";
     const cj = cjValues[i] || "0";
 
+    calcHTML += `(${zj}) - (${cj})`
     const expression = `(${zj}) - (${cj})`;
     console.log(`expression: ${expression}`)
     const result = formatExpression(expression);
-
+    calcHTML += `= ${result} <br>`
     resultArray.push(result);
   }
 
@@ -1035,6 +1229,14 @@ function getIndexOfMostNegativeZjCj(zjCjArray) {
   return minIndex;
 }
 
+function highlightPivotElement(row,column,table) {
+  const colClass = `#${table} .row${row+1} .c${column+1}`;
+  const pivotCells = document.querySelectorAll(colClass);
+  pivotCells.forEach(cell => {
+    cell.style.setProperty("background-color", "#FFE5B4", "important");
+  });
+}
+
 
 function highlightPivotColumn(index, table) {
   const colClass = `#${table} .c${index+1}`;
@@ -1070,11 +1272,19 @@ function formatExpression(expr) {
 
 function normalize(array, pivotElement) {
   if (pivotElement === 0) {
+    document.getElementById("found").innerHTML = 
+      `<div class="alert alert-danger text-center" role="alert">
+          Error! Cannot divide by zero.
+      </div>`;
+      $('#solution-tab').tab('show');  // This line switches to the "Solution" tab
     throw new Error("Cannot divide by zero (pivotElement is 0)");
   }
 
-  return array.map(element => parseFloat((element / pivotElement).toFixed(2)));
+  return array.map(element => {
+    const result = parseFloat((element / pivotElement).toFixed(2));
+    calcHTML += `(${element}) ÷ (${pivotElement}) = ${result}<br>`;
+    return result;
+  });
 }
-
 
   
