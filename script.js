@@ -33,12 +33,13 @@ $(document).ready(function() {
     $('#numVariablesInput').on('input', function () {
     let numVariables = parseInt($(this).val());
 
-       if (numVariables <= 1) {
-        // Prevent input by clearing the field or showing a message
-        $(this).val(2);
-        alert('Value less than 1 is not allowed. Please enter a value greater than 1.');
-        return;
-    }
+      if (Number(numVariables) <= 1) {
+          $(this).val("");
+          alert('Value less than or equal to 1 is not allowed. Please enter a value greater than 1.');
+          return;
+      } else {
+          addConstraint.style.display = "inline-block";
+      }
 
     hideAllInputs();
     showInputs(numVariables);
@@ -46,6 +47,7 @@ $(document).ready(function() {
     count = numVariables; // Update variable count
 
     // Reset constraints and regenerate objective inputs
+    solveButton.style.display = "none"
     $('#constraintsContainer').empty();
     constraintCount = 0;
     $('#nonNegativityConstraint').empty();
@@ -194,6 +196,8 @@ function reset() {
   $("#initialTable").empty();
   $("#otherTables").empty();
   $("#found").empty();
+  $("#solutions").empty();
+
 
   // Reset main data structures
   objFunctions = {};
